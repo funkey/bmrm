@@ -5,7 +5,7 @@ COIN_CLP_AVAILABLE=0
 BT_AVAILABLE=0
 
 
-BOOST_DIR=../externalpackages/
+BOOST_DIR=/usr/include
 UTILITIES_DIR=../utilities
 DATA_DIR=../data
 MODEL_DIR=../model

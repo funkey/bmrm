@@ -1,0 +1,446 @@
+Bundle Method for Regularized Risk Minimization (BMRM) version 2.1
+
+
+--------------
+A. DESCRIPTION
+--------------
+BMRM is a library for minimizing a specific type of unconstrained
+convex problem which is common in machine learning literature:
+   min J(w) := \lambda r(w) + l(w),
+    w
+where \lambda > 0 is a regularization constant, r(w) is a convex
+regularizer and l(w) is the emprical risk function (i.e. average of
+sum of loss functions). For example, given a dataset of m
+feature-label pairs (x_i,y_i), the linear SVMs can be cast in this
+formulation with:
+    r(w) := 0.5*w^Tw, and 
+    l(w) = 1/m*\sum_{i=1}^m max(0,1-y_i*w^Tx_i).
+Minimizing the objective J(w) means training a statistical model. The
+output of the minimization is the weight vector "w" of a linear
+classifier that will be used for prediction on unseen data or for
+evaluation of the performance of the trained model.
+
+This library is modular, i.e. the implementations of regularizer and
+loss function are decoupled, hence new problems can be modeled easily
+by implementing new regularizer (which usually involves implementation
+of a numerical optimizer) and/or new loss function.
+
+In addition, this library provides a parallelization framework which
+is ready for use when l(w) is decomposable, i.e., the examples
+(x_i,y_i) can be partitioned into some disjoint sets and the
+computation of l(w) can be done on these sets independently.
+
+Regularizers and loss functions available in this version are:
+1. Regularizer:
+   a. L2 norm, i.e. 0.5*w^Tw, with associated solvers:
+      i.  Dai-Fletcher (see l2n2_daifletcher.*pp)
+      ii. prLOQO (see l2n2_prloqo.*pp)
+   b. L1 norm, i.e. sum_{i=1}^d |w_i|, with associated solver:
+      i.  COIN-OR Clp (see l1n1_clp.*pp; require installed Clp)
+2. Loss functions:
+   a. Binary classification:
+      - Hinge {HINGE} (hingeloss.*pp)
+      - Squared Hinge {SQUARED_HINGE} (squaredhingeloss.*pp)
+      - Huber hinge {HUBER_HINGE} (huberhingeloss.*pp)
+      - Logistic regression {LOGISTIC} (logisticloss.*pp)
+      - F-beta {F_BETA} (fbetaloss.*pp)
+      - ROC-score {ROC_SCORE} (rocscoreloss.*pp)
+      - Exponential {EXPONENTIAL} (exponentialloss.*pp)
+      - Novelty detection {NOVELTY_DETECTION} {noveltyloss.*pp}
+   b. Univariate regression:
+      - $\epsilon$-insensitive {EPSILON_INSENSITIVE} (epsiloninsensitveloss.*pp)
+      - Least squares {LEAST_SQUARES} (leastsquaresloss.*pp)
+      - Least absolute deviation {LEAST_ABSOLUTE_DEVIATION} (leastabsdevloss.*pp)
+      - Quantile regression {QUANTILE_REGRESSION} (quantileloss.*pp)
+      - Poisson regression {POISSON_REGRESSION} (poissonloss.*pp)
+      - Huber's robust regression {HUBER_ROBUST_REGRESSION} (huberrobustloss.*pp)
+   c. Multi-class classification {WTA_MULTICLASS} (wtamulticlassloss.*pp)
+   d. Multi-label classification {MULTI_LABEL_CLASSIFICATION} (multilabelloss.*pp)
+   e. Ranking:
+      - NDCG ranking loss {NDCG_RANK} (ndcgrankloss.*pp)
+   f. Linesearch enhanced loss functions:
+      - Hinge {LINESEARCH_HINGE} (linesearch_hingeloss.*pp)
+      - Multi- class/label classification {LINESEARCH_MULTI_LABEL_CLASSIFICATION} (linesearch_multilabelloss.*pp) 
+   g. Graph matching {GRAPH_MATCH} (graphmatch-bmrm/) [ref 1]
+   h. Semi-Markov Models for human action segmentation and recognition {SMM_MULTICLASS} (smmmc-bmrm/) [ref 2]
+
+This version of BMRM consists of 4 variants organized in the folders:
+1. linear-bmrm/
+   - Solves problems range from binary classification to ranking with
+     loss functions listed in A.2.a. - A.2.e.
+2. ls-bmrm/
+   - Solves binary, multi-class and multi-label classification problem
+     with linesearch enhanced loss functions listed in A.2.f.
+3. graphmatch-bmrm/
+   - Solves graph matching problem with loss listed in A.2.g. [ref 1]
+4. smmmc-bmrm/
+   - Solves sequence segmentation and classification as a joint
+     problem (see A.2.h.) [ref 2]
+
+
+
+---------------   
+B. INSTALLATION
+---------------
+The training and prediction/evaluation executables in
+{linear,ls,graphmatch,smmmc}-bmrm/ can be compiled with default
+setting  by issuing the following GNU make command:
+   > make all
+in the folders, respectively. The default setting provides only L2
+norm regularization and does not support parallelization; all above
+mentioned variants/loss functions work well under this setting. For
+advanced setting, i.e., with support of L1 norm regularization and/or
+parallelization, the following libraries must be installed with
+environment variables set properly:
+
+1. COIN-OR Clp [https://projects.coin-or.org/Clp]
+   - Once this library is installed, do the following to activate
+     support of L1 norm regularization for the variants
+     {linear,graphmatch,smmmc}-bmrm:
+     a. Set environment variable COIN_INC_DIR to the include/ folder
+        of COIN-OR Clp.
+     b. Set environment variable COIN_LIB_DIR to the lib/ folder
+        of COIN-OR Clp.
+     c. Set the makefile variable COIN_CLP_AVAILABLE to "1" in the
+        Makefile under the folders {linear,graphmatch,smmmc}-bmrm/.
+
+2. MPICH2 [http://www.mcs.anl.gov/research/projects/mpich2/]
+   - Once this library is installed, do the following to activate the
+     support of parallelization for the variant linear-bmrm (except
+     the loss functions F-beta and ROC-score which are not
+     decomposable):
+     a. Set the makefile variable MPI_AVAILABLE to "1" in the
+        Makefile under the folders {linear,graphmatch,smmmc}-bmrm/.
+
+3. Bundle Trust Region Method Implementation (BT)
+   - Request this software from Dr. Jiri Outrata of Institute of
+     Information Theory and Automation, Czech Academy of Sciences
+     (UTIA CAV). Then change the original file bt.f to bt_orig.f and
+     put it under the folder solver/.
+   - Note that GNU gfortran is required to compile this code properly
+     with BMRM.
+   - Do the following to activate the support of using BT as the
+     minimizer:
+     a. Set the makefile variable BT_AVAILABLE to "1" in the Makefile
+        under the folders {linear,graphmatch,smmmc}-bmrm/.
+
+Issue the following GNU make command under *-bmrm/:
+   > make clean
+to erase the prevous built in current folder.
+
+
+
+--------
+C. USAGE
+--------
+For serial computation, the command for training is:
+   VARIANT-bmrm> ./VARIANT-bmrm-train configfile
+where VARIANT is one of {linear,ls,graphmatch,smmmc}.
+Similarly, the command for prediction/evaluation is:
+   VARIANT-bmrm> ./VARIANT-bmrm-predict configfile
+
+For parallel computation, the commands for training is:
+   VARIANT-bmrm> mpirun -machinefile ML -np NM VARIANT-bmrm-train configfile  
+where ML is a file with names of machines available for the parallel
+computation and NM is the number of such machines.  Note that the
+prediction/evaluation is not parallelized so the command remains the
+same as in serial computation.
+
+The configfile contains hyper-parameter/configurations/options for
+training and prediction/evaluation. The format for an option is as
+follows:
+   DATATYPE   NAME   VALUE
+where DATATYPE is one of {bool, string, int, double} for booleans
+(i.e. "true" or "false"),strings, integers, and floating-point
+numbers, respectively. NAME is the name of the variable and VALUE is
+the value assigned to NAME.
+
+Below is a list of common options and their descriptions:
+1.  string  Solver.type
+    - Type of minimization framework to use. Currently, there are
+      only two choices, namely, "BMRM" and "BT". BMRM is the framework
+      described in Part A, whereas BT is a framework where extra
+      Moreau-Yoshida regularization is used.
+
+2.  int     BMRM.verbosity
+    - Level of verbosity of the main program output/display/log. The
+      smaller the value the less verbose the program log is.
+
+3.  double  BMRM.lambda
+    - Regularization constant mentioned in Part A. Must be larger
+      than 0.
+
+4.  double  BMRM.epsilonTol
+    - One of the termination criteria; the training terminates at
+      iteration t when the quantity:
+         min_t J(w_t) - J_t(w_t)
+      is less than the positive value specified. Here, w_t is the
+      weight vector obtained in iteration t and J_t(w) is the convex
+      linear lower bound of J(w) at iteration t. Check [ref 3,4,5] for
+      further details.
+
+5.  double  BMRM.relEpsilonTol
+    - One of the termination criteria; the training terminates at
+      iteration t when the quantity:
+         (min_t J(w_t) - J_t(w_t)) / J(w_t)
+      is less than the positive value specified.
+
+6.  double  BMRM.gammaTol
+    - One of the termination criteria; the training terminates at
+      iteration t when the quantity:
+         J(w_t) - J_t(w_t)
+      is less than the positive value specified.
+
+7.  double  BMRM.relGammaTol
+    - One of the termination criteria; the training terminates at
+      iteration t when the quantity:
+         (J(w_t) - J_t(w_t))/J(w_t)
+      is less than the positive value specified.
+
+8.  int     BMRM.maxNumOfIter
+    - Maximum number of iterations allowed for the training. Must be
+      larger than 0.
+
+9.  string  BMRM.innerSolverType
+    - Type of numerical optimizers used for the
+      minimization/training. For BMRM, this is closely associated to
+      the regularizer used: for L1 norm regularization, available
+      inner solver is L1N1_Clp which requires COIN-OR Clp library; for
+      L2 norm regularization, available inner solvers are
+      L2N2_DaiFletcherPGM, L2N2_prLOQO, and
+      L2N2_LineSearch. L2N2_DaiFletcherPGM and L2N2_prLOQO solve a
+      quadratic program (QP) of size less than or equal to t at iteration
+      t, whereas L2N2_LineSearch solves a QP of size 2 regardless of
+      the number of iteration executed so far. In general,
+      the training using L2N2_DaiFletcherPGM or L2N2_prLOQO converges
+      faster than that of L2N2_LineSearch. See [ref 5] for further details. 
+
+10. double  BT.epsilonTol
+    - Termination criterion for BT. The training terminates at
+      iteration t when the inequality holds:
+         J(w_t) <= J(w) + \epsilon*\|w-w_t\| + \epsilon, \forall w
+      See [ref 6] for further details.
+
+11. double  BT.fm
+    - Lower bound of function J(w). May need fine tuning for BT to run
+      properly.
+
+12. int     BT.bufferSize
+    - Maximum number of (sub)gradients/linearizations to keep. The
+      larger the value the faster the training converges.
+
+13. int     InnerSolver.verbosity
+    - Level of verbosity for inner solver. 
+
+14. int     L2N2_BMRMDualInnerSolver.maxGradSetSize
+    - Maximum number of most recent linearizations (i.e. gradients) to
+      be kept. Applicable to L2N2_DaiFletcherPGM and L2N2_prLOQO
+      only. The larger the value the faster the training converges but
+      beware of the memory space required to keep those
+      linearizations. 
+
+15. int     L2N2_BMRMDualInnerSolver.gradIdleAge
+    - Number of consecutive iterations a linearization can remain
+      inactive (i.e. not useful in the training) before it gets
+      removed from the set of linearizations. 
+
+16. bool    L2N2_BMRMDualInnerSolver.removeAllIdleGradients
+    - Whether to remove all inactive linearizations or just the oldest
+      one.
+
+17. int     L1N1_Clp.gradIdleAge
+    - The L1 norm regularization counterpart of
+      L2N2_BMRMDualInnerSolver.gradIdleAge.
+
+18. bool    L1N1_Clp.removeAllIdleGradients
+    - The L1 norm regularization counterpart of
+      L2N2_BMRMDualInnerSolver.removeAllIdleGradients.
+
+19. double  L1N1_Clp.scale
+    - The scaling factor applied to the J(w) when L1 norm
+      regularization is used. This is useful when the solver is
+      sensitive to the scaling of the problem.
+
+20. string  Model.modelFile
+    - Filename to keep the trained model (i.e. weight vector with some
+      header information such as the dimensions). 
+
+21. string  Loss.lossFunctionType
+    - The name of the loss function chosen. Look for the names inside
+      the curly brackets in A.2. "Loss functions".
+
+22. int     Loss.verbosity
+    - Level of verbosity for loss functions.
+
+23. bool    Loss.nonNegative
+    - Set to "true" when the loss function chosen is known to be
+      non-negative. This help reduces the number of training
+      iterations when using L2N2_DaiFletcherPGM and L2N2_prLOQO.
+
+24. int     Data.verbosity
+    - Level of vebosity for data readers.
+
+25. bool    Data.bias
+    - Set to "true" if additional bias feature is to be introduced
+      into provided feature vectors. This increase the dimensionality
+      of weight vector by 1.
+
+26. string  Data.format
+    - The format of dataset provided. Applicable to linear-bmrm and
+      ls-bmrm only. Below is a list of dataset formats available in
+      this version of BMRM and the loss functions which require
+      dataset to be provided in such format. 
+      a. VECTOR_LABEL_BECTOR_FEATURE
+         * This format is exactly the SVM-light format. 
+         * Loss functions: 
+              HINGE, SQUARED_HINGE, LOGISTIC, F_BETA, ROC_SCORE,
+              EPSILON_INSENSITIVE, LEAST_SQUARES, WTA_MULTICLASS,
+              LINESEARCH_HINGE
+      b. VARIABLE_LENGTH_VECTOR_LABEL_VECTOR_FEATURE
+         * This format is the LIBSVM format for multi-label classification.
+         * Loss functions:  
+              MULTI_LABEL_CLASSIFICATION, LINESEARCH_MULTI_LABEL_CLASSIFICATION
+
+27. string  Data.featureFile
+    - Filename (with absolute path or path relative to
+      training/prediction executables) of the feature
+      vectors. Applicable to {linear,ls,smmmc}-bmrm only.
+
+28. string  Data.labelFile
+    - Filename (with absolute path or path relative to
+      training/prediction executables) of the labels. Applicable to
+      {linear,ls,smmmc}-bmrm only.
+
+29. string  Prediction.predictedLabelsFile
+    - Name of file to keep predicted labels for dataset provided by
+      the option Data.featureFile.
+
+30. string  Prediction.decisionFunctionValuesFile
+    - Name of file to keep decision function values for dataset
+      provided by the option Data.featureFile
+
+31. string  Regularizer.regularizerType
+    - Type of regularization required when Solver.type is BT. In this
+      version, the choices are L1 norm ("L1N1") and L2 norm ("L2N2").
+      
+The options required by the training executable under BMRM framework are:
+1. Solver.type BMRM
+2. BMRM.lambda
+3. BMRM.X where X is one of {"epsilonTol","relEpsilonTol","gammaTol","relGammaTol"}   
+4. BMRM.innerSolverType
+5. Loss.lossFunctionType
+6. Model.modelFile
+7. Data.format
+8. Data.featureFile
+9. Data.labelFile
+
+The options required by the training executable under BT framework are:
+1. Solver.type BT
+2. BMRM.lambda
+3. BT.epsilonTol
+4. BT.fm
+5. Loss.lossFunctionType
+6. Model.modelFile
+7. Data.format
+8. Data.featureFile
+9. Data.labelFile
+
+The options required by the prediction executable under BMRM or BT
+framework are:
+1. Loss.lossFunctionType
+2. Model.modelFile
+3. Data.format
+4. Data.featureFile
+5. Data.labelFile
+ 
+More descriptions on variant-specific configuration options can be
+found in the README files under the corresponding folder. Note that
+the options in the configuration files can be commented out by double
+forward slashes "//". See the example configuration files under the
+folders {linear,ls,graphmatch,smmmc}-bmrm/configfiles/.
+
+
+
+--------------------------
+D. QUICK DEVELOPER'S GUIDE
+--------------------------
+1. Creating new loss function:
+   - New loss function can be created by subclassing the class CLoss
+     (loss.*pp). Three class methods must be implemented:
+     a. ComputeLoss:
+           This method evaluates the loss on data (pointed to by class
+           variable _data) using the current weight vector (pointed to
+           by class variable _model). Note that this method is only
+           useful in certain cases such as in back-tracking linesearch
+           enchanced BMRM, hence it can do nothing but calls the class
+           method ComputeLossAndGradient. 
+     b. ComputeLossAndGradient:
+           This method evaluates the loss and compute (sub)gradient
+           i.e. the linearization required by the training procedure.         
+     c. Evaluate:
+           This method measures the performance (e.g., accuracy,
+           f-score, etc.) of the model pointed to by class variable
+           _model on the dataset pointed to by class variable _data. 
+
+2. Creating new regularizer/solver:
+   - It is often the case that new regularization involves
+     implementation of new numerical optimizers in BMRM. This can be
+     done by subclassing the class CSolver (solver.hpp) and implement
+     the class method Train.
+
+
+
+----------
+E. LICENSE
+----------
+All code except the following is released under Mozilla Public License
+(MPL) version 1.1 (www.mozilla.org/MPL/MPL-1.1.html):
+1. CImg (under the folder graphmatch/)
+2. uBlas (under the folder externalpackages/boost/) 
+
+
+
+-------------
+F. REFERENCES
+-------------
+1. T. S. Caetano, J. J. McAuley, L. Cheng, Q. V. Le, A. J. Smola
+   Learning Graph Matching
+   IEEE Transactions on Pattern Analysis and Machine Intelligence, 2009.
+
+2. Q. Shi, L. Wang, L. Cheng, A. J. Smola
+   Discriminative Human Action Segmentation and Recognition using Semi-Markov Models
+   CVPR, 2008.
+
+3. C. H. Teo, Q. V. Le, A. J. Smola, S. V. N. Vishwanathan
+   A Scalable Modular Convex Solver for Regularized Risk Minimization
+   KDD, 2007.
+
+4. A. J. Smola, S. V. N. Vishwanathan, Q. V. Le
+   Bundle Methods for Machine Learning
+   NIPS'20, 2008.
+
+5. C. H. Teo, S. V. N. Vishwanathan, A. J. Smola, Q. V. Le
+   Bundle Method for Regularized Risk Minimization
+   submitted to JMLR, 2009.
+
+6. H. Schramm, J. Zowe
+   A Version of the Bundle Idea for Minimizing A Nonsmooth Function:
+   Conceptual Idea, Convergence Analysis, Numerical Results
+   SIAM Journal on Optimization, Volume 2, Issue 1, pp. 121-152, Feb 1992.
+
+
+
+--------------------
+G. CODE CONTRIBUTORS
+--------------------
+Choon Hui Teo       (choonhui.teo@anu.edu.au)
+Quoc Viet Le        (quocle@stanford.edu)
+S.V.N. Vishwanathan (vishy@stat.purdue.edu)
+Alex Smola          (alex@smola.org)
+Markus Weimer       (markus@weimo.de)
+Jin Yu              (jin.yu@anu.edu.au)
+Qinfeng Shi         (qinfeng.shi@anu.edu.au)
+Julian McAuley      (julian.mcauley@nicta.com.au)
+
+
+Last updated: 17 Feb 2009

@@ -1,0 +1,52 @@
+BMRM
+----
+
+Configuration options description:
+1.  double  EPSILON_INSENSITIVE.epsilon
+    - The hyper-parameter i.e. epsilon, for the use in the loss
+      function EPSILON_INSENSITIVE only.
+
+2.  string  WTA_MULTICLASS.marginScalingFunctionType
+    - The type of margin scaling functions. Applicable to
+      WTA_MULTICLASS loss only. Two possible choices:
+      a. SLACK_RESCALING
+         - See [ref 1] for further description.
+      b. MARGIN_RESCALING  
+         - See [ref 2] for further description.
+
+3.  string  WTA_MULTICLASS.labelLossType
+    - The type of label loss function. Applicable to WTA_MULTICLASS
+      loss only. Three possible choices:
+       a. ZERO_ONE
+          - Return 1 if actual label and predicted label differ, 0
+            otherwise.
+       b. ZERO_ONE_HUNDRED
+          - Return 100 if actual label and predicted label differ, 0
+            otherwise.
+       c. SQUARED_DIFFERENCE
+          - Return the square of the absolute difference of actual and
+            predicted label.
+
+4.  int    NDCG.truncation
+    - The maximum number of top documents will be considered in the
+      evaluation of loss. Applicable to NDCG_RANK loss only. Valid
+      values must be > 1.
+
+5.  double  QUANTILE_REGRESSION.tau
+    - The hyper-parameter i.e. tau, for the use in the loss
+      function QUANTILE_REGRESSION only.
+
+6.  double  NOVELTY_DETECTION.rho
+    - The hyper-parameter i.e. rho, for the use in the loss
+      function NOVELTY_DETECTION only.
+
+7.  double  HUBER_HINGE.h
+    - The hyper-parameter i.e. h, for the use in the loss
+      function HUBER_HINGE only.
+
+References:
+1. C. H. Teo, S. V. N. Vishwanathan, A. J. Smola, Q. V. Le
+   Bundle Method for Regularized Risk Minimization
+   submitted to JMLR, 2009.
+
+

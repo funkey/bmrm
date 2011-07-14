@@ -1,0 +1,15 @@
+Linesearch enhanced BMRM
+------------------------
+
+Configuration options description:
+1.  double  Linesearch.theta
+    - The hyper-parameter for use in linesearch enhanced loss
+      functions only. See [ref 1] for further details.
+
+
+References:
+1. C. H. Teo, S. V. N. Vishwanathan, A. J. Smola, Q. V. Le
+   Bundle Method for Regularized Risk Minimization
+   submitted to JMLR, 2009.
+
+

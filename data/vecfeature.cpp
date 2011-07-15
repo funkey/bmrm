@@ -203,6 +203,7 @@ void CVecFeature::ScanFeatureFile()
     double tmpFval = 0;
     unsigned int lineCnt = 0;
     unsigned int featureCnt = 0;
+    unsigned int nzFeatureCnt = 0;
     bool firstQuery = true;
     unsigned int prevQID = 0;
     unsigned int curQID = 0;
@@ -376,7 +377,7 @@ void CVecFeature::ScanFeatureFile()
             }
             
             // feature values      
-            for(featureCnt=0, featureDimension=0; !iss.eof();)
+            for(featureCnt=0, nzFeatureCnt=0, featureDimension=0; !iss.eof();)
             {    
                 iss >> token;         
                 if(IsBlankLine(token)) break;
@@ -393,7 +394,8 @@ void CVecFeature::ScanFeatureFile()
                 // update statistics
                 featureDimension++;
                 if(SML::abs(tmpFval) > 0.0) 
-                    featureCnt++;
+                    nzFeatureCnt++;
+                featureCnt++;
             }
             
             // check dimension consistency
@@ -407,12 +409,14 @@ void CVecFeature::ScanFeatureFile()
             prevFeatureDimension = featureDimension;
             
             // update statistics
-            if(biasFlag)
-                featureCnt += 1;  // for shifted hyperplane
+            if(biasFlag) {
+                nzFeatureCnt++;  // for shifted hyperplane
+                featureCnt++;
+            }
             subsetSizes->at(numOfAllSubset-1) += 1;
-            nnzSet.push_back(featureCnt);
-            allnnz += featureCnt;
-            maxNNZ = max(maxNNZ, featureCnt);
+            nnzSet.push_back(nzFeatureCnt);
+            allnnz += nzFeatureCnt;
+            maxNNZ = max(maxNNZ, featureCnt); // for dense feature vectors we need to ignore zero-features here
             numOfAllExample++;
         }
     }

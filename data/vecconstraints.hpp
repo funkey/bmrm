@@ -57,26 +57,63 @@ public:
 
 	/**
 	 * Scans and loads the constraints file.
+	 * @param numVariables [read] The expected number of variables involved in
+	 *                            the constraints. This will influence the shape
+	 *                            of the resulting coefficient matrices.
 	 */
-	virtual void LoadConstraintData();
+	virtual void LoadConstraintData(unsigned int numVariables);
 
 	bool HasData() {
-		return (Aeq != 0);
+
+		return (_Aeq != 0);
 	}
 
 	unsigned int NumOfConstraints() {
-		return numOfConstraints;
+
+		return _numOfConstraints;
+	}
+
+	unsigned int NumOfEqualities() {
+
+		return _numOfEqualities;
+	}
+
+	unsigned int NumOfInequalities() {
+
+		return _numOfInequalities;
+	}
+
+	const TheMatrix& GetEqualityCoefs() {
+
+		return *_Aeq;
+	}
+
+	const TheMatrix& GetEqualityValues() {
+
+		return *_beq;
+	}
+
+	const TheMatrix& GetInequalityCoefs() {
+
+		return *_Aineq;
+	}
+
+	const TheMatrix& GetInequalityValues() {
+
+		return *_bineq;
 	}
 
 	std::string ConstraintsFile() {
-		return constraintsFile;
+
+		return _constraintsFile;
 	}
 
 	void ShowConstraints() {
-		Aeq->Print();
-		beq->Print();
-		Aineq->Print();
-		bineq->Print();
+
+		_Aeq->Print();
+		_beq->Print();
+		_Aineq->Print();
+		_bineq->Print();
 	}
 
 protected:
@@ -85,46 +122,6 @@ protected:
 	 */
 	void ScanExpression(string expr, double& coefficient, unsigned int& id);
 
-	/** Verbosity level
-	 */
-	int vecconstraints_verbosity;
-
-	/** Coefficient matrix of equalities (each row is a constraint)
-	 */
-	TheMatrix* Aeq;
-
-	/** Values vector of equalities
-	 */
-	TheMatrix* beq;
-
-	/** Coefficient matrix of inequalities (each row is a constraint)
-	 */
-	TheMatrix* Aineq;
-
-	/** Values vector of inequalities
-	 */
-	TheMatrix* bineq;
-
-	/** Total number of constraints.
-	 */
-	unsigned int numOfConstraints;
-
-	/** Number of equalities.
-	 */
-	unsigned int numOfEqualities;
-
-	/** Number of inequalities.
-	 */
-	unsigned int numOfInequalities;
-
-	/** The number of variables involved in constraints.
-	 */
-	unsigned int numOfVariables;
-
-	/** Name of the file containing constraints
-	 */
-	std::string constraintsFile;
-
 	/** Scan constraints file to determine number of (in)equalities
 	 */
 	void ScanConstraintsFile();
@@ -132,6 +129,46 @@ protected:
 	/** Allocate constraints matrices and vectors and load constraints from file
 	 */
 	void LoadConstraints();
+
+	/** Verbosity level
+	 */
+	int _vecconstraints_verbosity;
+
+	/** Coefficient matrix of equalities (each row is a constraint)
+	 */
+	TheMatrix* _Aeq;
+
+	/** Values vector of equalities
+	 */
+	TheMatrix* _beq;
+
+	/** Coefficient matrix of inequalities (each row is a constraint)
+	 */
+	TheMatrix* _Aineq;
+
+	/** Values vector of inequalities
+	 */
+	TheMatrix* _bineq;
+
+	/** Total number of constraints.
+	 */
+	unsigned int _numOfConstraints;
+
+	/** Number of equalities.
+	 */
+	unsigned int _numOfEqualities;
+
+	/** Number of inequalities.
+	 */
+	unsigned int _numOfInequalities;
+
+	/** The number of variables involved in constraints.
+	 */
+	unsigned int _numOfVariables;
+
+	/** Name of the file containing constraints
+	 */
+	std::string _constraintsFile;
 };
 
 #endif // _VECCONSTRAINTS_HPP_

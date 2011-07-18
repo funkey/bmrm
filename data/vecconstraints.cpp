@@ -29,32 +29,34 @@ using namespace std;
 using namespace boost;
 
 CVecConstraints::CVecConstraints() :
-	vecconstraints_verbosity(0),
-	Aeq(0),
-	beq(0),
-	Aineq(0),
-	bineq(0),
-	numOfConstraints(0),
-	numOfEqualities(0),
-	numOfInequalities(0),
-	numOfVariables(0),
-	constraintsFile("")
+	_vecconstraints_verbosity(0),
+	_Aeq(0),
+	_beq(0),
+	_Aineq(0),
+	_bineq(0),
+	_numOfConstraints(0),
+	_numOfEqualities(0),
+	_numOfInequalities(0),
+	_numOfVariables(0),
+	_constraintsFile("")
 {}
 
 CVecConstraints::~CVecConstraints() {
 
-	if (Aeq)
-		delete Aeq;
-	if (beq)
-		delete beq;
-	if (Aineq)
-		delete Aineq;
-	if (bineq)
-		delete bineq;
+	if (_Aeq)
+		delete _Aeq;
+	if (_beq)
+		delete _beq;
+	if (_Aineq)
+		delete _Aineq;
+	if (_bineq)
+		delete _bineq;
 }
 
 void
-CVecConstraints::LoadConstraintData() {
+CVecConstraints::LoadConstraintData(unsigned int numOfVariables) {
+
+	_numOfVariables = numOfVariables;
 
 	CTimer scanconstraintstime;
 	CTimer loadconstraintstime;
@@ -62,12 +64,12 @@ CVecConstraints::LoadConstraintData() {
 	// get configurations
 	Configuration &config = Configuration::GetInstance();
 
-	constraintsFile = config.GetString("Data.constraintsFile");
+	_constraintsFile = config.GetString("Data.constraintsFile");
 	if(config.IsSet("Data.verbosity"))
-		vecconstraints_verbosity = config.GetInt("Data.verbosity");
+		_vecconstraints_verbosity = config.GetInt("Data.verbosity");
 
 	// collect some properties of the dataset
-	if(vecconstraints_verbosity >= 1)
+	if(_vecconstraints_verbosity >= 1)
 		cout << "Scanning constraints file... "<< endl;
 
 	scanconstraintstime.Start();
@@ -75,14 +77,14 @@ CVecConstraints::LoadConstraintData() {
 	scanconstraintstime.Stop();
 
 	// read constraintss into memory
-	if(vecconstraints_verbosity >= 1)
+	if(_vecconstraints_verbosity >= 1)
 		cout << "Loading constraints file... "<< endl;
 
 	loadconstraintstime.Start();
 	LoadConstraints();
 	loadconstraintstime.Stop();
 
-	if(vecconstraints_verbosity >= 2) {
+	if(_vecconstraints_verbosity >= 2) {
 		cout << "scanconstraintstime	: " << scanconstraintstime.CPUTotal() << endl;
 		cout << "loadconstraintstime	: " << loadconstraintstime.CPUTotal() << endl;
 	}
@@ -95,15 +97,16 @@ CVecConstraints::ScanConstraintsFile() {
 	string token = "";
 	ifstream constraintsFp;
 
-	numOfConstraints  = 0;
-	numOfEqualities   = 0;
-	numOfInequalities = 0;
-	numOfVariables    = 0;
+	_numOfConstraints  = 0;
+	_numOfEqualities   = 0;
+	_numOfInequalities = 0;
 
-	constraintsFp.open(constraintsFile.c_str());
+	unsigned int numOfVariables    = 0;
+
+	constraintsFp.open(_constraintsFile.c_str());
 	if(!constraintsFp.good()) {
 
-		string msg = "Cannot open constraints file <" + constraintsFile + ">!";
+		string msg = "Cannot open constraints file <" + _constraintsFile + ">!";
 		throw CBMRMException(msg, "CVecConstraints::ScanConstraintsFile()");
 	}
 
@@ -123,13 +126,13 @@ CVecConstraints::ScanConstraintsFile() {
 
 			if (token[0] == '<' || token[0] == '>') {
 
-				numOfInequalities++;
+				_numOfInequalities++;
 				break;
 			}
 
 			if (token[0] == '=') {
 
-				numOfEqualities++;
+				_numOfEqualities++;
 				break;
 			}
 
@@ -142,15 +145,25 @@ CVecConstraints::ScanConstraintsFile() {
 		}
 	}
 
-	numOfConstraints = numOfEqualities + numOfInequalities;
+	if (numOfVariables > _numOfVariables) {
 
-	if (vecconstraints_verbosity >= 1)
-		if(numOfConstraints == 0)
+		string msg =
+				string("Number of variables in constraint file (") +
+				lexical_cast<string>(numOfVariables) +
+				") is more than expected (" +
+				lexical_cast<string>(_numOfVariables);
+		throw CBMRMException(msg, "CVecConstraints::ScanConstraintsFile()");
+	}
+
+	_numOfConstraints = _numOfEqualities + _numOfInequalities;
+
+	if (_vecconstraints_verbosity >= 1)
+		if(_numOfConstraints == 0)
 			cout << "Constraints file is empty" << endl;
 		else
-			cout << numOfConstraints << " constraints found ("
-			     << numOfEqualities << " eq., "
-			     << numOfInequalities << " ineq.)" << endl;
+			cout << _numOfConstraints << " constraints found ("
+			     << _numOfEqualities << " eq., "
+			     << _numOfInequalities << " ineq.)" << endl;
 
 	constraintsFp.close();
 }
@@ -168,7 +181,7 @@ CVecConstraints::ScanExpression(string expr, double& coefficient, unsigned int& 
 
 	if (op != '*') {
 		string msg = "Malformed constraints file <" +
-		             constraintsFile + ">. Expected *, got \"" +
+		             _constraintsFile + ">. Expected *, got \"" +
 		             op + "\".";
 		throw CBMRMException(msg, "CVecConstraints::ScanExpression()");
 	}
@@ -177,19 +190,19 @@ CVecConstraints::ScanExpression(string expr, double& coefficient, unsigned int& 
 void
 CVecConstraints::LoadConstraints() {
 
-	Aeq   = new TheMatrix(numOfEqualities, numOfVariables, SML::SPARSE);
-	beq   = new TheMatrix(numOfEqualities, 1, SML::DENSE);
-	Aineq = new TheMatrix(numOfInequalities, numOfVariables, SML::SPARSE);
-	bineq = new TheMatrix(numOfInequalities, 1, SML::DENSE);
+	_Aeq   = new TheMatrix(_numOfEqualities, _numOfVariables, SML::SPARSE);
+	_beq   = new TheMatrix(_numOfEqualities, 1, SML::DENSE);
+	_Aineq = new TheMatrix(_numOfInequalities, _numOfVariables, SML::SPARSE);
+	_bineq = new TheMatrix(_numOfInequalities, 1, SML::DENSE);
 
 	string line = "";
 	string token = "";
 	ifstream constraintsFp;
 
-	constraintsFp.open(constraintsFile.c_str());
+	constraintsFp.open(_constraintsFile.c_str());
 	if(!constraintsFp.good()) {
 
-		string msg = "Cannot open constraints file <" + constraintsFile + ">!";
+		string msg = "Cannot open constraints file <" + _constraintsFile + ">!";
 		throw CBMRMException(msg, "CVecConstraints::LoadConstraints()");
 	}
 
@@ -216,12 +229,12 @@ CVecConstraints::LoadConstraints() {
 			if (token[0] == '<') {
 
 				for (unsigned int i = 0; i < ids.size(); i++)
-					Aineq->Set(nextInequality, ids[i], coefs[i]);
+					_Aineq->Set(nextInequality, ids[i], coefs[i]);
 
 				double value;
 				iss >> value;
 
-				bineq->Set(nextInequality, value);
+				_bineq->Set(nextInequality, value);
 
 				nextInequality++;
 				break;
@@ -230,12 +243,12 @@ CVecConstraints::LoadConstraints() {
 			if (token[0] == '>') {
 
 				for (unsigned int i = 0; i < ids.size(); i++)
-					Aineq->Set(nextInequality, ids[i], -coefs[i]);
+					_Aineq->Set(nextInequality, ids[i], -coefs[i]);
 
 				double value;
 				iss >> value;
 
-				bineq->Set(nextInequality, -value);
+				_bineq->Set(nextInequality, -value);
 
 				nextInequality++;
 				break;
@@ -244,12 +257,12 @@ CVecConstraints::LoadConstraints() {
 			if (token[0] == '=') {
 
 				for (unsigned int i = 0; i < ids.size(); i++)
-					Aeq->Set(nextEquality, ids[i], coefs[i]);
+					_Aeq->Set(nextEquality, ids[i], coefs[i]);
 
 				double value;
 				iss >> value;
 
-				beq->Set(nextEquality, value);
+				_beq->Set(nextEquality, value);
 
 				nextEquality++;
 				break;
@@ -265,33 +278,33 @@ CVecConstraints::LoadConstraints() {
 		}
 	}
 
-	if (nextEquality != numOfEqualities) {
+	if (nextEquality != _numOfEqualities) {
 
 		string msg =
 				string("Only ") + lexical_cast<string>(nextEquality) +
-				" equalities read, " + lexical_cast<string>(numOfEqualities) +
+				" equalities read, " + lexical_cast<string>(_numOfEqualities) +
 				" expected.";
 
 		throw CBMRMException(msg, "CVecConstraints::LoadConstraints()");
 	}
-	if (nextInequality != numOfInequalities) {
+	if (nextInequality != _numOfInequalities) {
 
 		string msg =
 				string("Only ") + lexical_cast<string>(nextInequality) +
-				" inequalities read, " + lexical_cast<string>(numOfInequalities) +
+				" inequalities read, " + lexical_cast<string>(_numOfInequalities) +
 				" expected.";
 
 		throw CBMRMException(msg, "CVecConstraints::LoadConstraints()");
 	}
 
-	if (vecconstraints_verbosity >= 2) {
+	if (_vecconstraints_verbosity >= 2) {
 
 		cout << "Equalities: " << endl;
-		Aeq->Print();
-		beq->Print();
+		_Aeq->Print();
+		_beq->Print();
 		cout << "Inequalities: " << endl;
-		Aineq->Print();
-		bineq->Print();
+		_Aineq->Print();
+		_bineq->Print();
 	}
 
 	constraintsFp.close();

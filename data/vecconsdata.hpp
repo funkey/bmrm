@@ -47,7 +47,7 @@ public:
 			throw CBMRMException(msg, "CConsVecData::CConsVecData");
 		}
 
-		LoadConstraintData();
+		LoadConstraintData(NumOfLabel());
 	}
 
 	virtual ~CConsVecData() {}

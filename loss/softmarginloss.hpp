@@ -60,6 +60,12 @@ public:
 
 private:
 
+	/** Computes the constant (c) and linear (l) contribution of the
+	 * missclassification cost with respect to a ground-truth labeling.
+	 * The resulting costs for any labeling y is then c + <l,y>.
+	 */
+	void ComputeCostContribution(const TheMatrix& groundTruth);
+
 	/** The training data.
 	 */
 	CConsVecData* _data;
@@ -84,6 +90,11 @@ private:
 	/** The linear solver used to compute the gradient and loss.
 	 */
 	CplexSolver _solver;
+
+	double _costFactor;
+
+	double    _constantCostContribution;
+	TheMatrix _linearCostContribution;
 };
 
 #endif // _SOFTMARGINLOSS_HPP_

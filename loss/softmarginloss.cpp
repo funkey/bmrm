@@ -31,7 +31,9 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	_numVariables(_data->NumOfLabel()),
 	_numEqConstraints(_data->NumOfEqualities()),
 	_numIneqConstraints(_data->NumOfInequalities()),
-	_solver(_numVariables, _numEqConstraints, _numIneqConstraints) {
+	_solver(_numVariables, _numEqConstraints, _numIneqConstraints),
+	_costFactor(1.0),
+	_linearCostContribution(_numVariables, 1, SML::DENSE) {
 
 	cout << "[SoftMarginLoss] initialising..." << endl;
 
@@ -49,6 +51,9 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	_solver.SetInequalities(
 			_data->GetInequalityCoefs(),
 			_data->GetInequalityValues());
+
+	// calculate cost contribution (does not change anymore)
+	ComputeCostContribution(_data->labels());
 }
 
 void
@@ -80,4 +85,34 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	loss = 0;
 
 	// compute gradient
+}
+
+void
+SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
+
+	cout << "[SoftMarginLoss::ComputeCostContribution] "
+	     << "computing loss contributions for " << endl;
+	groundTruth.Print();
+
+	_constantCostContribution = 0;
+
+	for (int i = 0; i < _numVariables; i++) {
+
+		double value;
+
+		// accumulate constant cost term
+		groundTruth.Get(i, value);
+		_constantCostContribution += value*_costFactor;
+
+		// calculate linear cost coefficients
+		_linearCostContribution.Set(i, (1.0 - 2.0*value)*_costFactor);
+	}
+
+	cout << "[SoftMarginLoss::ComputeCostContribution] "
+	     << "constant contribution is " << _constantCostContribution
+	     << endl;
+
+	cout << "[SoftMarginLoss::ComputeCostContribution] "
+	     << "linear contribution is " << endl;
+	_linearCostContribution.Print();
 }

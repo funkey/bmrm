@@ -23,6 +23,11 @@ endif()
 # define core libraries
 set (CORELIBS ${Boost_LIBRARIES})
 
+set(CPLEX_BASE_PATH "~/local" CACHE PATH "Additional install path for cplex")
+set(CONCERT_BASE_PATH "~/local" CACHE PATH "Additional install path for concert")
+set(CPLEX_SYSTEM "x86-64_sles10_4.1" CACHE PATH "Specify the system of cplex")
+set(CPLEX_LIBFORMAT "static_pic" CACHE PATH "Specify the library format of cplex")
+
 #######################
 # project directories #
 #######################
@@ -36,6 +41,14 @@ include_directories(${PROJECT_SOURCE_DIR}/solver)
 include_directories(${PROJECT_SOURCE_DIR}/solver/bmrminnersolver)
 include_directories(${PROJECT_SOURCE_DIR}/tools)
 include_directories(${PROJECT_SOURCE_DIR}/utilities)
+
+include_directories(${CPLEX_BASE_PATH}/include)
+include_directories(${CONCERT_BASE_PATH}/include)
+
+link_directories(${CPLEX_BASE_PATH}/lib/${CPLEX_SYSTEM}/${CPLEX_LIBFORMAT})
+link_directories(${CONCERT_BASE_PATH}/lib/${CPLEX_SYSTEM}/${CPLEX_LIBFORMAT})
+
+add_definitions(-DIL_STD)
 
 ################
 # source files #
@@ -57,8 +70,6 @@ endif()
 if (Clp_FOUND)
     set (src_solver ${src_solver};${PROJECT_SOURCE_DIR}/solver/bmrminnersolver/l1n1_clp.cpp)
 endif()
-
-message (STATUS "Solver: ${src_solver}")
 
 #####################
 # compiler settings #

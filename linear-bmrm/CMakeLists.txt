@@ -8,4 +8,4 @@ set (sources ${src_data} ${src_linesearch} ${src_loss} ${src_model} ${src_regula
 #target_link_libraries(linear-bmrm-predict ${CORELIBS})
 
 add_executable(linear-bmrm-train linear-bmrm-train.cpp ${sources})
-target_link_libraries(linear-bmrm-train ${CORELIBS})
+target_link_libraries(linear-bmrm-train ${CORELIBS} ilocplex cplex concert pthread)

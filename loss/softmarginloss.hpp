@@ -24,6 +24,7 @@
 #include "vecconsdata.hpp"
 #include "loss.hpp"
 #include "model.hpp"
+#include "CplexSolver.hpp"
 
 class SoftMarginLoss : public CLoss {
 
@@ -74,6 +75,15 @@ private:
 	/** The number of binary variables in _data.
 	 */
 	unsigned int _numVariables;
+
+	/** The number of linear constraints on the label data.
+	 */
+	unsigned int _numEqConstraints;
+	unsigned int _numIneqConstraints;
+
+	/** The linear solver used to compute the gradient and loss.
+	 */
+	CplexSolver _solver;
 };
 
 #endif // _SOFTMARGINLOSS_HPP_

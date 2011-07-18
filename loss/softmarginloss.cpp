@@ -26,12 +26,14 @@ using namespace std;
 
 SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	_data(data),
-	_model(model) {
+	_model(model),
+	_numFeatures(_data->dim()),
+	_numVariables(_data->NumOfLabel()),
+	_numEqConstraints(_data->NumOfEqualities()),
+	_numIneqConstraints(_data->NumOfInequalities()),
+	_solver(_numVariables, _numEqConstraints, _numIneqConstraints) {
 
 	cout << "[SoftMarginLoss] initialising..." << endl;
-
-	_numFeatures  = _data->dim();
-	_numVariables = _data->NumOfLabel();
 
 	cout << "[SoftMarginLoss] dataset consists of " << _numFeatures
 	     << " features and " << _numVariables << " variables." << endl;
@@ -40,6 +42,13 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	if(!_model->IsInitialized())
 		_model->Initialize(1, _numFeatures, _data->bias());
 
+	// set linear constraints
+	_solver.SetEqualities(
+			_data->GetEqualityCoefs(),
+			_data->GetEqualityValues());
+	_solver.SetInequalities(
+			_data->GetInequalityCoefs(),
+			_data->GetInequalityValues());
 }
 
 void
@@ -47,7 +56,9 @@ SoftMarginLoss::ComputeLoss(double& loss) {
 
 	cout << "[SoftMarginLoss::ComputeLoss] ..." << endl;
 
-	loss = 0;
+	TheMatrix grad(_numFeatures, 1, SML::DENSE);
+
+	ComputeLossAndGradient(loss, grad);
 }
 
 void
@@ -55,11 +66,18 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
 	cout << "[SoftMarginLoss::ComputeLossAndGradient] ..." << endl;
 
+	// compute coefficients of the objective
 	TheMatrix& weights = _model->GetW();
 	TheMatrix f(_numVariables, 1);
 	_data->XMultW(weights, f);
 
-	f.Print();
+	// set objective in linear solver
+	_solver.SetObjective(f, 1.0);
 
+	// solve the ILP
+
+	// get value of the objective
 	loss = 0;
+
+	// compute gradient
 }

@@ -57,6 +57,10 @@ class CDataFactory
          // default to this format
          std::string dataFormat = "VECTOR_LABEL_VECTOR_FEATURE";
          
+         // default when a constraints file is given
+         if(config.IsSet("Data.constraintsFile"))
+            dataFormat = "CONSTRAINTS_LABEL_VECTOR_FEATURE";
+
          // unless the user specifies otherwise in the config 
          if(config.IsSet("Data.format"))
             dataFormat = config.GetString("Data.format");
@@ -68,6 +72,10 @@ class CDataFactory
          else if(dataFormat == "VARIABLE_LENGTH_VECTOR_LABEL_VECTOR_FEATURE")
          {
             ds = new CMultilabelVecData(start,nparts);            
+         }
+         else if(dataFormat == "CONSTRAINTS_LABEL_VECTOR_FEATURE")
+         {
+            ds = new CConsVecData(start,nparts);
          }
          // else if(dataFormat == "YOUR_DATA_FORMAT")
          //{

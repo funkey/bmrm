@@ -64,6 +64,8 @@
 // ranking
 #include "ndcgrankloss.hpp"
 
+// structured losses
+#include "softmarginloss.hpp"
 
 /**  
  * Factory class for creating new Loss instances. 
@@ -263,6 +265,16 @@ class CLossFactory
                                        "CLossFactory::GetLoss()");
                }
                loss = new CNDCGRankLoss(model, vecdata);
+            } 
+            else if(lossFunctionType == "SOFT_MARGIN")
+            {
+               CConsVecData *consvecdata = 0;
+               if(! (consvecdata = dynamic_cast<CConsVecData*>(data))) 
+               {
+                  throw CBMRMException("unable to cast data into CConsVecData",
+                                       "CLossFactory::GetLoss()");
+               }
+               loss = new SoftMarginLoss(model, consvecdata);
             } 
             else
             {

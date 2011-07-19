@@ -230,4 +230,7 @@ SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
 			 << "linear contribution is " << endl;
 		_linearCostContribution.Print();
 	}
+
+	// normalize Hamming distance
+	_costFactor = 1.0/_numVariables;
 }

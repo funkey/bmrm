@@ -166,9 +166,9 @@ CplexSolver::Solve(TheMatrix& x, double& value, string& msg) {
 	_cplex.solve();
 
 	// get solver result message
-	msg = "";
-	stringstream ss(msg);
-	ss << _cplex.getStatus();
+	stringstream ss;
+	ss << _cplex.getStatus() << flush;
+	msg = ss.str();
 
 	if (_cplex.getStatus() != IloAlgorithm::Optimal)
 		return false;

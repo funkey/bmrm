@@ -151,7 +151,7 @@ CVecConstraints::ScanConstraintsFile() {
 				string("Number of variables in constraint file (") +
 				lexical_cast<string>(numOfVariables) +
 				") is more than expected (" +
-				lexical_cast<string>(_numOfVariables);
+				lexical_cast<string>(_numOfVariables) + ")";
 		throw CBMRMException(msg, "CVecConstraints::ScanConstraintsFile()");
 	}
 

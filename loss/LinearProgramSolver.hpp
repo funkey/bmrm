@@ -42,6 +42,15 @@ class LinearProgramSolver {
 
 public:
 
+	/** Used to indicate whether the solver should attempt to minimize or
+	 * maximize the objective.
+	 */
+	enum Sense {
+
+		MINIMIZE,
+		MAXIMIZE
+	};
+
 	LinearProgramSolver(
 		unsigned int numVariables,
 		unsigned int numEqConstraints,
@@ -57,7 +66,10 @@ public:
 	 * Set the coefficients of the objective.
 	 * @param a [read] A real valued vector of the coefficients.
 	 */
-	virtual void SetObjective(const TheMatrix& a, double constant) = 0;
+	virtual void SetObjective(
+			const TheMatrix& a,
+			double constant,
+			Sense sense) = 0;
 
 	/**
 	 * Set the linear equality constraints Ax == b.

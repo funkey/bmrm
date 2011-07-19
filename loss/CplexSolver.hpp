@@ -53,7 +53,7 @@ public:
 	 * Set the coefficients of the objective.
 	 * @param a [read] A real valued vector of the coefficients.
 	 */
-	virtual void SetObjective(const TheMatrix& a, double constant);
+	virtual void SetObjective(const TheMatrix& a, double constant, Sense sense);
 
 	/**
 	 * Set the linear equality constraints Ax == b.

@@ -58,9 +58,15 @@ CplexSolver::~CplexSolver() {
 }
 
 void
-CplexSolver::SetObjective(const TheMatrix& a, double constant) {
+CplexSolver::SetObjective(const TheMatrix& a, double constant, Sense sense) {
 
 	// TODO: check size of a
+
+	// set sense of objective
+	if (sense == MINIMIZE)
+		_objective.setSense(IloObjective::Minimize);
+	else
+		_objective.setSense(IloObjective::Maximize);
 
 	// set the constant value of the objective
 	_objective.setConstant(static_cast<IloNum>(constant));

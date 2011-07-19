@@ -45,12 +45,14 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 		_model->Initialize(1, _numFeatures, _data->bias());
 
 	// set linear constraints
-	_solver.SetEqualities(
-			_data->GetEqualityCoefs(),
-			_data->GetEqualityValues());
-	_solver.SetInequalities(
-			_data->GetInequalityCoefs(),
-			_data->GetInequalityValues());
+	if (_numEqConstraints > 0)
+		_solver.SetEqualities(
+				_data->GetEqualityCoefs(),
+				_data->GetEqualityValues());
+	if (_numIneqConstraints > 0)
+		_solver.SetInequalities(
+				_data->GetInequalityCoefs(),
+				_data->GetInequalityValues());
 
 	// calculate cost contribution (does not change anymore)
 	ComputeCostContribution(_data->labels());

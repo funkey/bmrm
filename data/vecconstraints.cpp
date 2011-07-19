@@ -190,10 +190,17 @@ CVecConstraints::ScanExpression(string expr, double& coefficient, unsigned int& 
 void
 CVecConstraints::LoadConstraints() {
 
-	_Aeq   = new TheMatrix(_numOfEqualities, _numOfVariables, SML::SPARSE);
-	_beq   = new TheMatrix(_numOfEqualities, 1, SML::DENSE);
-	_Aineq = new TheMatrix(_numOfInequalities, _numOfVariables, SML::SPARSE);
-	_bineq = new TheMatrix(_numOfInequalities, 1, SML::DENSE);
+	if (_numOfEqualities > 0) {
+
+		_Aeq   = new TheMatrix(_numOfEqualities, _numOfVariables, SML::SPARSE);
+		_beq   = new TheMatrix(_numOfEqualities, 1, SML::DENSE);
+	}
+
+	if (_numOfInequalities > 0) {
+
+		_Aineq = new TheMatrix(_numOfInequalities, _numOfVariables, SML::SPARSE);
+		_bineq = new TheMatrix(_numOfInequalities, 1, SML::DENSE);
+	}
 
 	string line = "";
 	string token = "";
@@ -299,12 +306,19 @@ CVecConstraints::LoadConstraints() {
 
 	if (_vecconstraints_verbosity >= 2) {
 
-		cout << "Equalities: " << endl;
-		_Aeq->Print();
-		_beq->Print();
-		cout << "Inequalities: " << endl;
-		_Aineq->Print();
-		_bineq->Print();
+		if (_numOfEqualities > 0) {
+
+			cout << "Equalities: " << endl;
+			_Aeq->Print();
+			_beq->Print();
+		}
+
+		if (_numOfInequalities > 0) {
+
+			cout << "Inequalities: " << endl;
+			_Aineq->Print();
+			_bineq->Print();
+		}
 	}
 
 	constraintsFp.close();

@@ -103,6 +103,12 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	// f = Xw + (1-2y')*gamma
 	f.Add(_linearCostContribution);
 
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "constant term of objective: " << c << endl;
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "coefficients of objective: ";
+	f.Print();
+
 	// set objective in linear solver
 	_solver.SetObjective(f, c, LinearProgramSolver::MAXIMIZE);
 
@@ -139,12 +145,22 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
 	// phiCu = phi(x,y) = X^T*y
 	_data->XTMultW(y, grad); // use grad in-place
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "phiCu: ";
+	grad.Print();
 	// phiGt = phi(x,y') = X^T*y'
 	TheMatrix phiGt(_numFeatures, 1, SML::DENSE);
 	_data->XTMultW(_data->labels(), phiGt);
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "phiGt: ";
+	phiGt.Print();
 
 	// gradient = phiCu - phiGt
 	grad.Minus(phiGt);
+
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "gradient: ";
+	grad.Print();
 }
 
 void

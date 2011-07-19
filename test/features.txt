@@ -1,0 +1,17 @@
+# contains the feature vectors for the variables, one per row
+#
+# x x x x x 0 0 0 0 0 0 0 0
+# x x x x x 0 0 0 0 0 0 0 0
+# x x x x x 0 0 0 0 0 0 0 0
+# 0 0 0 0 0 x x x x x 0 0 0 |
+# 0 0 0 0 0 x x x x x 0 0 0 | one category of variables
+# 0 0 0 0 0 x x x x x 0 0 0 |
+# 0 0 0 0 0 x x x x x 0 0 0 |
+# 0 0 0 0 0 0 0 0 0 0 x x x
+# 0 0 0 0 0 0 0 0 0 0 x x x
+# 0 0 0 0 0 0 0 0 0 0 x x x
+#
+# different training sets can just be concatenated
+
+0.5 0
+0 0.5

@@ -1,0 +1,6 @@
+# contains the ground-truth of the variables as a colmn vector
+#
+# different training sets can just be concatenated
+
+0
+1

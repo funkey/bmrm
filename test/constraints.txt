@@ -1,0 +1,11 @@
+# contains one linear constraints per row on the allowed labels in the following form:
+#
+#   <coef>*<var_num> [<coef>*<var_num> ... ] <rel> <value>
+#
+# where
+#   <coef>    ... a real number
+#   <var_num> ... the number of the variable, in accordance to label.txt and features.txt
+#   <rel>     ... the relation, one of "<=", "==", ">="
+#   <value>   ... a real number
+
+1*0 1*1 == 1 # y_0 + y_1 == 1

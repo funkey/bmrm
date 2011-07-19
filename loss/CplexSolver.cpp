@@ -20,6 +20,8 @@
 
 #include <CplexSolver.hpp>
 
+#include "configuration.hpp"
+
 CplexSolver::CplexSolver(
 		unsigned int numVariables,
 		unsigned int numEqConstraints,
@@ -31,10 +33,18 @@ CplexSolver::CplexSolver(
 	_variables(_env, numVariables, 0, 1, ILOINT),
 	_objective(_env),
 	_model(_env),
-	_cplex(_model) {
+	_cplex(_model),
+	_verbosity(0) {
+
+	// get configurations
+	Configuration &config = Configuration::GetInstance();
+
+	if (config.IsSet("Cplex.verbosity"))
+		_verbosity = config.GetInt("Cplex.verbosity");
 
 	// setup Ilo environment
-	//_env.setOut(env.getNullStream());
+	if (_verbosity == 0)
+		_env.setOut(_env.getNullStream());
 
 		// add all variables to the model
 	for (int i = 0; i < numVariables; i++)
@@ -44,8 +54,10 @@ CplexSolver::CplexSolver(
 						_variables[i].getLB(),
 						_variables[i],
 						_variables[i].getUB()));
-	cout << "[CplexSolver] created " << numVariables
-	     << " binary variables" << endl;
+
+	if (_verbosity > 1)
+		cout << "[CplexSolver] created " << numVariables
+			 << " binary variables" << endl;
 
 	// add the objective to the model (it will be filled later)
 	_model.add(_objective);
@@ -80,8 +92,9 @@ CplexSolver::SetObjective(const TheMatrix& a, double constant, Sense sense) {
 		_objective.setLinearCoef(_variables[i], static_cast<IloNum>(value));
 	}
 
-	cout << "[CplexSolver] model after setting objective: "
-	     << endl << _model << endl;
+	if (_verbosity > 2)
+		cout << "[CplexSolver] model after setting objective: "
+			 << endl << _model << endl;
 }
 
 void
@@ -118,8 +131,9 @@ CplexSolver::SetEqualities(const TheMatrix& A, const TheMatrix& b) {
 
 	_model.add(constraints);
 
-	cout << "[CplexSolver] model after setting equality constraints: "
-	     << endl << _model << endl;
+	if (_verbosity > 2)
+		cout << "[CplexSolver] model after setting equality constraints: "
+			 << endl << _model << endl;
 }
 
 void
@@ -156,8 +170,9 @@ CplexSolver::SetInequalities(const TheMatrix& C, const TheMatrix& d) {
 
 	_model.add(constraints);
 
-	cout << "[CplexSolver] model after setting inequality constraints: "
-	     << endl << _model << endl;
+	if (_verbosity > 2)
+		cout << "[CplexSolver] model after setting inequality constraints: "
+			 << endl << _model << endl;
 }
 
 bool

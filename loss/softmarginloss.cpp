@@ -33,12 +33,21 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	_numIneqConstraints(_data->NumOfInequalities()),
 	_solver(_numVariables, _numEqConstraints, _numIneqConstraints),
 	_costFactor(1.0),
-	_linearCostContribution(_numVariables, 1, SML::DENSE) {
+	_linearCostContribution(_numVariables, 1, SML::DENSE),
+	_verbosity(0) {
 
-	cout << "[SoftMarginLoss] initialising..." << endl;
+	// get configurations
+	Configuration &config = Configuration::GetInstance();
 
-	cout << "[SoftMarginLoss] dataset consists of " << _numFeatures
-	     << " features and " << _numVariables << " variables." << endl;
+	if (config.IsSet("Loss.verbosity"))
+		_verbosity = config.GetInt("Loss.verbosity");
+
+	if (_verbosity > 0) {
+		cout << "[SoftMarginLoss] initialising..." << endl;
+
+		cout << "[SoftMarginLoss] dataset consists of " << _numFeatures
+			 << " features and " << _numVariables << " variables." << endl;
+	}
 
 	// initialize model
 	if(!_model->IsInitialized())
@@ -61,7 +70,8 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 void
 SoftMarginLoss::ComputeLoss(double& loss) {
 
-	cout << "[SoftMarginLoss::ComputeLoss] ..." << endl;
+	if (_verbosity > 1)
+		cout << "[SoftMarginLoss::ComputeLoss] ..." << endl;
 
 	TheMatrix grad(_numFeatures, 1, SML::DENSE);
 
@@ -71,7 +81,8 @@ SoftMarginLoss::ComputeLoss(double& loss) {
 void
 SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] ..." << endl;
+	if (_verbosity > 1)
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] ..." << endl;
 
 
 	/////////////////////////////////////////////////////////////////
@@ -81,9 +92,12 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	// the current weights
 	TheMatrix& w = _model->GetW();
 
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "current weights: ";
-	w.Print();
+	if (_verbosity > 1) {
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "current weights: ";
+		w.Print();
+	}
 
 	// f = Xw (intermediate result)
 	TheMatrix f(_numVariables, 1);
@@ -103,11 +117,14 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	// f = Xw + (1-2y')*gamma
 	f.Add(_linearCostContribution);
 
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "constant term of objective: " << c << endl;
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "coefficients of objective: ";
-	f.Print();
+	if (_verbosity > 2) {
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "constant term of objective: " << c << endl;
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "coefficients of objective: ";
+		f.Print();
+	}
 
 	// set objective in linear solver
 	_solver.SetObjective(f, c, LinearProgramSolver::MAXIMIZE);
@@ -124,11 +141,16 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
 	bool success = _solver.Solve(y, loss, msg);
 
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "most offending solution: ";
-	y.Print();
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "loss: " << loss << endl;
+	if (_verbosity > 2) {
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "most offending solution: ";
+		y.Print();
+	}
+
+	if (_verbosity > 1)
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "loss: " << loss << endl;
 
 	if (!success) {
 
@@ -145,30 +167,44 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
 	// phiCu = phi(x,y) = X^T*y
 	_data->XTMultW(y, grad); // use grad in-place
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "phiCu: ";
-	grad.Print();
+
+	if (_verbosity > 2) {
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "phiCu: ";
+		grad.Print();
+	}
+
 	// phiGt = phi(x,y') = X^T*y'
 	TheMatrix phiGt(_numFeatures, 1, SML::DENSE);
 	_data->XTMultW(_data->labels(), phiGt);
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "phiGt: ";
-	phiGt.Print();
+
+	if (_verbosity > 2) {
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "phiGt: ";
+		phiGt.Print();
+	}
 
 	// gradient = phiCu - phiGt
 	grad.Minus(phiGt);
 
-	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-	     << "gradient: ";
-	grad.Print();
+	if (_verbosity > 1) {
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+			 << "gradient: ";
+		grad.Print();
+	}
 }
 
 void
 SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
 
-	cout << "[SoftMarginLoss::ComputeCostContribution] "
-	     << "computing loss contributions for " << endl;
-	groundTruth.Print();
+	if (_verbosity > 2) {
+
+		cout << "[SoftMarginLoss::ComputeCostContribution] "
+			 << "computing loss contributions for " << endl;
+		groundTruth.Print();
+	}
 
 	_constantCostContribution = 0;
 
@@ -184,11 +220,14 @@ SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
 		_linearCostContribution.Set(i, (1.0 - 2.0*value)*_costFactor);
 	}
 
-	cout << "[SoftMarginLoss::ComputeCostContribution] "
-	     << "constant contribution is " << _constantCostContribution
-	     << endl;
+	if (_verbosity > 2) {
 
-	cout << "[SoftMarginLoss::ComputeCostContribution] "
-	     << "linear contribution is " << endl;
-	_linearCostContribution.Print();
+		cout << "[SoftMarginLoss::ComputeCostContribution] "
+			 << "constant contribution is " << _constantCostContribution
+			 << endl;
+
+		cout << "[SoftMarginLoss::ComputeCostContribution] "
+			 << "linear contribution is " << endl;
+		_linearCostContribution.Print();
+	}
 }

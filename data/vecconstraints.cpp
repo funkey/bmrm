@@ -304,7 +304,7 @@ CVecConstraints::LoadConstraints() {
 		throw CBMRMException(msg, "CVecConstraints::LoadConstraints()");
 	}
 
-	if (_vecconstraints_verbosity >= 2) {
+	if (_vecconstraints_verbosity > 2) {
 
 		if (_numOfEqualities > 0) {
 

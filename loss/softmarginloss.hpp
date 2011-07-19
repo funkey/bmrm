@@ -95,6 +95,10 @@ private:
 
 	double    _constantCostContribution;
 	TheMatrix _linearCostContribution;
+
+	/** The verbosity of the output. Set via Loss.verbosity in the config file.
+	 */
+	int _verbosity;
 };
 
 #endif // _SOFTMARGINLOSS_HPP_

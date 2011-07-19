@@ -94,6 +94,9 @@ private:
 
 	// the Ilo Cplex solver object
 	IloCplex _cplex;
+
+	// the verbosity of the output - set via Cplex.verbosity in config file
+	int _verbosity;
 };
 
 #endif // _CPLEX_SOLVER_HPP_

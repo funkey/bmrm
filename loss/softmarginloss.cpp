@@ -73,20 +73,78 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
 	cout << "[SoftMarginLoss::ComputeLossAndGradient] ..." << endl;
 
-	// compute coefficients of the objective
-	TheMatrix& weights = _model->GetW();
+
+	/////////////////////////////////////////////////////////////////
+	// compute coefficients f and constant part c of the objective //
+	/////////////////////////////////////////////////////////////////
+
+	// the current weights
+	TheMatrix& w = _model->GetW();
+
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "current weights: ";
+	w.Print();
+
+	// f = Xw (intermediate result)
 	TheMatrix f(_numVariables, 1);
-	_data->XMultW(weights, f);
+	_data->XMultW(w, f);
+
+	// c = c1 - c2 = <y',1*gamma> - <y',Xw>
+
+	// c1 = <y',1*gamma>
+	double c1 = _constantCostContribution;
+
+	// c2 = <y',Xw>
+	double c2;
+	_data->labels().Dot(f, c2);
+
+	double c = c1 - c2;
+
+	// f = Xw + (1-2y')*gamma
+	f.Add(_linearCostContribution);
 
 	// set objective in linear solver
-	_solver.SetObjective(f, 1.0);
+	_solver.SetObjective(f, c, LinearProgramSolver::MAXIMIZE);
 
-	// solve the ILP
+	///////////////////
+	// solve the ILP //
+	///////////////////
 
-	// get value of the objective
-	loss = 0;
+	// the solution vector
+	TheMatrix y(_numVariables, 1, SML::SPARSE);
 
-	// compute gradient
+	// the return message of the solver
+	string msg;
+
+	bool success = _solver.Solve(y, loss, msg);
+
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "most offending solution: ";
+	y.Print();
+	cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+	     << "loss: " << loss << endl;
+
+	if (!success) {
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient]" << endl
+		     << " **************** WARNING *******************" << endl
+		     << " **** linear solver did not find optimum ****" << endl
+		     << " ********************************************" << endl
+		     << " solver returned: " << msg << endl;
+	}
+
+	//////////////////////
+	// compute gradient //
+	//////////////////////
+
+	// phiCu = phi(x,y) = X^T*y
+	_data->XTMultW(y, grad); // use grad in-place
+	// phiGt = phi(x,y') = X^T*y'
+	TheMatrix phiGt(_numFeatures, 1, SML::DENSE);
+	_data->XTMultW(_data->labels(), phiGt);
+
+	// gradient = phiCu - phiGt
+	grad.Minus(phiGt);
 }
 
 void

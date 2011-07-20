@@ -76,7 +76,7 @@ endif()
 # compiler settings #
 #####################
 
-set (CMAKE_CXX_FLAGS_RELEASE "-O3 -fomit-frame-pointer")
+set (CMAKE_CXX_FLAGS_RELEASE "-O3 -fomit-frame-pointer -DNDEBUG")
 set (CMAKE_CXX_FLAGS_DEBUG   "-g")
 
 ############

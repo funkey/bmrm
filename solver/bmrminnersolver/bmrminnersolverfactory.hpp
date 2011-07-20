@@ -37,6 +37,10 @@
 #include "l1n1_clp.hpp"
 #endif
 
+#ifdef HAVE_CPLEX
+#include "l2n2_cplex.hpp"
+#endif
+
 /**
  * Factory class for creating new bmrminnersolver object.
  *
@@ -76,6 +80,12 @@ class CBMRMInnerSolverFactory
          {
             innerSolver = new CL2N2_LineSearch(lambda);
          }
+#ifdef HAVE_CPLEX
+         else if(innerSolverType == "L2N2_Cplex")
+         {
+            innerSolver = new CL2N2_Cplex(lambda);
+         }
+#endif
 #ifdef HAVE_L1N1_INNER_SOLVER
          else if(innerSolverType == "L1N1_Clp")
          {

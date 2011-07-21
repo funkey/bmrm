@@ -19,6 +19,7 @@
 #include <iostream>
 
 #include "common.hpp"
+#include "timer.hpp"
 #include "softmarginloss.hpp"
 #include "configuration.hpp"
 
@@ -85,6 +86,9 @@ SoftMarginLoss::ComputeLoss(double& loss) {
 void
 SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
+	CTimer totalTime;
+	totalTime.Start();
+
 	if (_verbosity > 1)
 		cout << "[SoftMarginLoss::ComputeLossAndGradient] ..." << endl;
 
@@ -92,6 +96,9 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	/////////////////////////////////////////////////////////////////
 	// compute coefficients f and constant part c of the objective //
 	/////////////////////////////////////////////////////////////////
+
+	CTimer computeCoefficientsTime;
+	computeCoefficientsTime.Start();
 
 	// the current weights
 	TheMatrix& w = _model->GetW();
@@ -130,12 +137,32 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		f.Print();
 	}
 
+	computeCoefficientsTime.Stop();
+
+	CTimer setCoefficientsTime;
+	setCoefficientsTime.Start();
+
 	// set objective in linear solver
 	_solver.SetObjective(f, c, LinearProgramSolver::MAXIMIZE);
+
+	setCoefficientsTime.Stop();
+
+	if (_verbosity > 1) {
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "time computing coefficients:"
+		     << computeCoefficientsTime.WallclockTotal() << endl;
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "time setting coefficients  :"
+		     << setCoefficientsTime.WallclockTotal() << endl;
+	}
 
 	///////////////////
 	// solve the ILP //
 	///////////////////
+
+	CTimer solveTime;
+	solveTime.Start();
 
 	// the solution vector
 	TheMatrix y(_numVariables, 1, SML::SPARSE);
@@ -144,6 +171,8 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	string msg;
 
 	bool success = _solver.Solve(y, loss, msg);
+
+	solveTime.Stop();
 
 	if (_verbosity > 2) {
 
@@ -165,9 +194,17 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		     << " solver returned: " << msg << endl;
 	}
 
+	if (_verbosity > 1)
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "time solving problem       :"
+		     << solveTime.WallclockTotal() << endl;
+
 	//////////////////////
 	// compute gradient //
 	//////////////////////
+
+	CTimer computeGradientTime;
+	computeGradientTime.Start();
 
 	// phiCu = phi(x,y) = X^T*y
 	_data->XTMultW(y, grad); // use grad in-place
@@ -192,11 +229,20 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	// gradient = phiCu - phiGt
 	grad.Minus(phiGt);
 
+	computeGradientTime.Stop();
+
 	if (_verbosity > 1) {
 
 		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
 			 << "gradient: ";
 		grad.Print();
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "time computing gradient    :"
+		     << computeGradientTime.WallclockTotal() << endl;
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "total time                 :"
+		     << totalTime.WallclockTotal() << endl;
 	}
 }
 

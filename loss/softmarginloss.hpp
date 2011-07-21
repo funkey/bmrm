@@ -91,7 +91,13 @@ private:
 	 */
 	CplexSolver _solver;
 
+	/** The coefficient of the cost term.
+	 */
 	double _costFactor;
+
+	/** The coefficient of the margin term.
+	 */
+	double _gamma;
 
 	double    _constantCostContribution;
 	TheMatrix _linearCostContribution;

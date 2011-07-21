@@ -33,6 +33,7 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	_numIneqConstraints(_data->NumOfInequalities()),
 	_solver(_numVariables, _numEqConstraints, _numIneqConstraints),
 	_costFactor(1.0),
+	_gamma(1.0),
 	_linearCostContribution(_numVariables, 1, SML::DENSE),
 	_verbosity(0) {
 
@@ -41,6 +42,9 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 
 	if (config.IsSet("Loss.verbosity"))
 		_verbosity = config.GetInt("Loss.verbosity");
+
+	if (config.IsSet("Loss.gamma"))
+		_gamma = config.GetDouble("Loss.gamma");
 
 	if (_verbosity > 0) {
 		cout << "[SoftMarginLoss] initialising..." << endl;

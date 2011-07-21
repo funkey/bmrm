@@ -25,6 +25,7 @@
 #include "loss.hpp"
 #include "model.hpp"
 #include "CplexSolver.hpp"
+#include "cost.hpp"
 
 class SoftMarginLoss : public CLoss {
 
@@ -33,6 +34,10 @@ public:
 	/** Default constructor.
 	 */
 	SoftMarginLoss(CModel* model, CConsVecData* data);
+
+	/** Destructor.
+	 */
+	~SoftMarginLoss();
 
 	/** Compute the loss value given the weight vector w in model object  
 	 * 
@@ -90,6 +95,10 @@ private:
 	/** The linear solver used to compute the gradient and loss.
 	 */
 	CplexSolver _solver;
+
+	/** The cost function Δ(y,y') to be used for the margin scaling.
+	 */
+	Cost* _costFunction;
 
 	/** The coefficient of the cost term.
 	 */

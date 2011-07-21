@@ -22,6 +22,7 @@
 #include "timer.hpp"
 #include "softmarginloss.hpp"
 #include "configuration.hpp"
+#include "costfactory.hpp"
 
 using namespace std;
 
@@ -33,6 +34,7 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	_numEqConstraints(_data->NumOfEqualities()),
 	_numIneqConstraints(_data->NumOfInequalities()),
 	_solver(_numVariables, _numEqConstraints, _numIneqConstraints),
+	_costFunction(0),
 	_costFactor(1.0),
 	_gamma(1.0),
 	_linearCostContribution(_numVariables, 1, SML::DENSE),
@@ -54,6 +56,9 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 			 << " features and " << _numVariables << " variables." << endl;
 	}
 
+	// get cost function
+	_costFunction = CostFactory::GetCost(data);
+
 	// initialize model
 	if(!_model->IsInitialized())
 		_model->Initialize(1, _numFeatures, _data->bias());
@@ -70,6 +75,12 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 
 	// calculate cost contribution (does not change anymore)
 	ComputeCostContribution(_data->labels());
+}
+
+SoftMarginLoss::~SoftMarginLoss() {
+
+	if (_costFunction)
+		delete _costFunction;
 }
 
 void
@@ -114,9 +125,9 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	TheMatrix f(_numVariables, 1);
 	_data->XMultW(w, f);
 
-	// c = c1 - c2 = <y',1*gamma> - <y',Xw>
+	// c = c1 - c2 = const_cost - <y',Xw>
 
-	// c1 = <y',1*gamma>
+	// c1 = const_cost
 	double c1 = _constantCostContribution;
 
 	// c2 = <y',Xw>
@@ -256,19 +267,14 @@ SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
 		groundTruth.Print();
 	}
 
-	_constantCostContribution = 0;
+	_costFunction->constantContribution(groundTruth, _constantCostContribution);
+	_costFunction->linearContribution(groundTruth, _linearCostContribution);
 
-	for (int i = 0; i < _numVariables; i++) {
+	// normalize Hamming distance
+	_costFactor = 1.0/_numVariables;
 
-		double value;
-
-		// accumulate constant cost term
-		groundTruth.Get(i, value);
-		_constantCostContribution += value*_costFactor;
-
-		// calculate linear cost coefficients
-		_linearCostContribution.Set(i, (1.0 - 2.0*value)*_costFactor);
-	}
+	_constantCostContribution *= _costFactor;
+	_linearCostContribution.Scale(_costFactor);
 
 	if (_verbosity > 2) {
 
@@ -280,7 +286,4 @@ SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
 			 << "linear contribution is " << endl;
 		_linearCostContribution.Print();
 	}
-
-	// normalize Hamming distance
-	_costFactor = 1.0/_numVariables;
 }

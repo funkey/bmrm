@@ -89,6 +89,9 @@ private:
 	// the objective
 	IloObjective _objective;
 
+	// the coefficients of the objective
+	IloNumArray _coefs;
+
 	// the Ilo model containing the objective and constraints
 	IloModel _model;
 

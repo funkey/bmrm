@@ -32,6 +32,7 @@ CplexSolver::CplexSolver(
 			numIneqConstraints),
 	_variables(_env, numVariables, 0, 1, ILOINT),
 	_objective(_env),
+	_coefs(_env, numVariables),
 	_model(_env),
 	_cplex(_model),
 	_verbosity(0) {
@@ -89,8 +90,10 @@ CplexSolver::SetObjective(const TheMatrix& a, double constant, Sense sense) {
 		double value;
 		a.Get(i, value);
 
-		_objective.setLinearCoef(_variables[i], static_cast<IloNum>(value));
+		_coefs[i] = static_cast<IloNum>(value);
 	}
+
+	_objective.setLinearCoefs(_variables, _coefs);
 
 	if (_verbosity > 2)
 		cout << "[CplexSolver] model after setting objective: "

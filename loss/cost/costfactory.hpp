@@ -22,6 +22,7 @@
 #include "cost.hpp"
 
 #include "hammingcost.hpp"
+#include "zerocost.hpp"
 
 /** Factory class to create cost functions. These functions can be used in some
  * loss functions.
@@ -50,6 +51,11 @@ public:
 
 				// instantiate Hamming cost function
 				return new HammingCost(dynamic_cast<CVecLabel*>(data), false);
+
+			} else if (costFunctionType == "ZERO") {
+
+				// instantiate zero cost function
+				return new ZeroCost();
 
 			} else {
 

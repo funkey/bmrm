@@ -200,4 +200,7 @@ CL2N2_Cplex::SolveQP() {
 			cout << x[i] << " ";
 		cout << endl;
 	}
+
+	// clean up
+	env.end();
 }

@@ -270,12 +270,6 @@ SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
 	_costFunction->constantContribution(groundTruth, _constantCostContribution);
 	_costFunction->linearContribution(groundTruth, _linearCostContribution);
 
-	// normalize Hamming distance
-	_costFactor = 1.0/_numVariables;
-
-	_constantCostContribution *= _costFactor;
-	_linearCostContribution.Scale(_costFactor);
-
 	if (_verbosity > 2) {
 
 		cout << "[SoftMarginLoss::ComputeCostContribution] "

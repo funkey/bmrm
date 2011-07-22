@@ -18,7 +18,7 @@
 
 #include "hammingcost.hpp"
 
-HammingCost::HammingCost(CVecLabel* data) {
+HammingCost::HammingCost(CVecLabel* data, bool normalize) {
 
 	// if the labels have dimension 1, we assume that the Hamming distance is
 	// supposed to be computed over all labels (everything else would be
@@ -27,6 +27,12 @@ HammingCost::HammingCost(CVecLabel* data) {
 		_numVariables = data->NumOfLabel();
 	else
 		_numVariables = data->LabelDimension();
+
+	// normalize Hamming distance?
+	if (normalize)
+		_costFactor = 1.0/_numVariables;
+	else
+		_costFactor = 1.0;
 }
 
 void
@@ -42,6 +48,8 @@ HammingCost::constantContribution(const TheMatrix& y, double& c) const {
 		y.Get(i, value);
 		c += value;
 	}
+
+	c *= _costFactor;
 }
 
 void
@@ -55,4 +63,6 @@ HammingCost::linearContribution(const TheMatrix& y, TheMatrix& a) const {
 		y.Get(i, value);
 		a.Set(i, (1.0 - 2.0*value));
 	}
+
+	a.Scale(_costFactor);
 }

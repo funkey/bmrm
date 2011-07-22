@@ -41,10 +41,15 @@ public:
 
 			std::string costFunctionType = config.GetString("Loss.costFunctionType");
 
-			if (costFunctionType == "HAMMING") {
+			if (costFunctionType == "NORMALIZED_HAMMING") {
+
+				// instantiate normalized Hamming cost function
+				return new HammingCost(dynamic_cast<CVecLabel*>(data), true);
+
+			} else if (costFunctionType == "HAMMING") {
 
 				// instantiate Hamming cost function
-				return new HammingCost(dynamic_cast<CVecLabel*>(data));
+				return new HammingCost(dynamic_cast<CVecLabel*>(data), false);
 
 			} else {
 

@@ -24,15 +24,21 @@
 
 /** The Hamming cost function.
  *
- *   Δ(y,y') = \sum_i | y_i - y'_i | = <y,1> + <1-2y,y'>
+ *   Δ(y,y') = 1/N \sum_i | y_i - y'_i | = 1/N (<y,1> + <1-2y,y'>)
  *
- * where "1" denotes a vector of 1s.
+ * where "1" denotes a vector of 1s. If the "normalize" flag is given, N will be
+ * the number of elements in y, otherwise it's just 1.
  */
 class HammingCost : public Cost {
 
 public:
 
-	HammingCost(CVecLabel* data);
+	/** Default constructor.
+	 *
+	 * @param data      [read] Pointer to the label data.
+	 * @param normalize [read] Whether to normalize the Hamming distance.
+	 */
+	HammingCost(CVecLabel* data, bool normalize);
 
 	/** Get the constant contribution of the cost function to the objective.
 	 *
@@ -52,6 +58,9 @@ private:
 
 	// the number of variables in a label y
 	int _numVariables;
+
+	// factor by which to scale the cost function
+	double _costFactor;
 };
 
 #endif // _HAMMINGCOST_HPP_

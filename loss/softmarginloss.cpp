@@ -192,9 +192,18 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		y.Print();
 	}
 
-	if (_verbosity > 1)
+	if (_verbosity > 1) {
+
+		double costTerm;
+		_linearCostContribution.Dot(y, costTerm);
+		costTerm += _constantCostContribution;
+
 		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-			 << "loss: " << loss << endl;
+		     << "loss Γ(y,y')<w,Θ(x,y')-Θ(x,y)> + Δ(y,y'): "
+		     << (loss - costTerm)
+		     << " + " << costTerm
+		     << " = " << loss << endl;
+	}
 
 	if (!success) {
 
@@ -269,12 +278,6 @@ SoftMarginLoss::ComputeCostContribution(const TheMatrix& groundTruth) {
 
 	_costFunction->constantContribution(groundTruth, _constantCostContribution);
 	_costFunction->linearContribution(groundTruth, _linearCostContribution);
-
-	// normalize Hamming distance
-	_costFactor = 1.0/_numVariables;
-
-	_constantCostContribution *= _costFactor;
-	_linearCostContribution.Scale(_costFactor);
 
 	if (_verbosity > 2) {
 

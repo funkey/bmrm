@@ -19,10 +19,13 @@
 #ifndef _L2N2_CPLEX_HPP_
 #define _L2N2_CPLEX_HPP_
 
+#include <iostream>
+
+#include <ilcplex/ilocplex.h>
+
 #include "sml.hpp"
 #include "model.hpp"
 #include "l2n2_bmrmdualinnersolver.hpp"
-#include <iostream>
 
 class CL2N2_Cplex : public CL2N2_BMRMDualInnerSolver {
 
@@ -35,6 +38,32 @@ protected:
 	/** Solve QP
 	*/
 	virtual void SolveQP();
+
+private:
+
+	// the dimension x during the last call to SolveQP
+	int _oldDim;
+
+	// the Ilo environment
+	IloEnv _env;
+
+	// the solver variables x
+	IloNumVarArray _vars;
+
+	// the objective
+	IloObjective _objective;
+
+	// the expression of the objective
+	IloNumExpr _expr;
+
+	// the linear constraint
+	IloRange _constraint;
+
+	// the Ilo model containing the objective and constraints
+	IloModel _model;
+
+	// the Ilo Cplex solver object
+	IloCplex _cplex;
 };
 
 #endif // _L2N2_CPLEX_HPP_

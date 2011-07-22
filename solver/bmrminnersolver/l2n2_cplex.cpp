@@ -19,14 +19,25 @@
 #include <iostream>
 #include <sstream>
 
-#include <ilcplex/ilocplex.h>
-
 #include "l2n2_cplex.hpp"
 
 using namespace std;
 
 CL2N2_Cplex::CL2N2_Cplex(double lambda) :
-	CL2N2_BMRMDualInnerSolver(lambda) {}
+	CL2N2_BMRMDualInnerSolver(lambda),
+	_oldDim(0),
+	_vars(_env),
+	_objective(_env),
+	_expr(_env),
+	_constraint(_env, 1.0, 1.0),
+	_model(_env),
+	_cplex(_model) {
+
+	_objective.setSense(IloObjective::Minimize);
+	_objective.setExpr(_expr);
+	_model.add(_objective);
+	_model.add(_constraint);
+}
 
 void
 CL2N2_Cplex::SolveQP() {
@@ -81,16 +92,33 @@ CL2N2_Cplex::SolveQP() {
 		for (int i = 0; i < dim; i++)
 			cout << u[i] << " ";
 		cout << endl;
+
+		cout << "[L2N2_Cplex::SolveQP] dim    :" << endl << dim << endl;
+		cout << "[L2N2_Cplex::SolveQP] _oldDim:" << endl << _oldDim << endl;
 	}
 
-	if (verbosity > 1)
+	if (verbosity > 1) {
+
+		if (dim == _oldDim + 1) {
+			cout << "[L2N2_Cplex::SolveQP] dimension increased by one: "
+			     << "will augment existing problem" << endl;
+		}
+	}
+
+	if (verbosity > 1) {
+
 		cout << "[L2N2_Cplex::SolveQP] allocating variable memory" << endl;
+	}
 
-	IloEnv env;
+	if (dim == _oldDim + 1) {
 
-	IloModel model(env);
+		_vars.add(IloNumVar(_env, 0.0, 1.0, ILOFLOAT));
 
-	IloNumVarArray vars(env, dim, 0.0, 1.0, ILOFLOAT);
+	} else {
+
+		_vars.end();
+		_vars = IloNumVarArray(_env, dim, 0.0, 1.0, ILOFLOAT);
+	}
 
 	if (verbosity > 1)
 		cout << "[L2N2_Cplex::SolveQP] " << dim << " variables allocated" << endl;
@@ -102,43 +130,74 @@ CL2N2_Cplex::SolveQP() {
 	if (verbosity > 1)
 		cout << "[L2N2_Cplex::SolveQP] setting objective" << endl;
 
-	IloObjective objective(env);
-	objective.setSense(IloObjective::Minimize);
-
-	IloNumExpr expr(env);
 
 	try {
 
-		// quadratic term 0.5*x^T*Q*x
-		for (int row = 0; row < dim; row++) {
+		if (dim == _oldDim + 1) {
 
-			for (int col = row; col < dim; col ++) {
+			// augment existing expression:
+			int col = dim - 1;
 
-				double value = Q[col + row*dim];
+			// quadratic term 0.5*x^T*Q*x
+			for (int row = 0; row < dim; row++) {
 
-				if (value == 0)
-					continue;
+					double value = Q[col + row*dim];
 
-				if (col == row) 
-					expr = expr + static_cast<IloNum>(0.5*value)*vars[row]*vars[row];
-				else
-					expr = expr + static_cast<IloNum>(value)*vars[row]*vars[col];
+					if (value == 0)
+						continue;
+
+					if (row == dim - 1)
+						_expr = _expr +
+								static_cast<IloNum>(0.5*value)*_vars[row]*_vars[row];
+					else
+						_expr = _expr +
+								static_cast<IloNum>(value)*_vars[row]*_vars[col];
 			}
-		}
 
-		// linear term
-		for (int i = 0; i < dim; i++)
-			expr = expr + static_cast<IloNum>(f[i])*vars[i];
+			// linear term
+			_expr = _expr + static_cast<IloNum>(f[col])*_vars[col];
+
+			_objective.setExpr(_expr);
+
+		} else {
+
+			// create new empty expression
+			_expr.end();
+			_expr = IloNumExpr(_env);
+
+			// fill it:
+
+			// quadratic term 0.5*x^T*Q*x
+			for (int row = 0; row < dim; row++) {
+
+				for (int col = row; col < dim; col ++) {
+
+					double value = Q[col + row*dim];
+
+					if (value == 0)
+						continue;
+
+					if (col == row)
+						_expr = _expr +
+								static_cast<IloNum>(0.5*value)*_vars[row]*_vars[row];
+					else
+						_expr = _expr +
+								static_cast<IloNum>(value)*_vars[row]*_vars[col];
+				}
+			}
+
+			// linear term
+			for (int i = 0; i < dim; i++)
+				_expr = _expr + static_cast<IloNum>(f[i])*_vars[i];
+
+			_objective.setExpr(_expr);
+		}
 
 	} catch (IloMemoryException e) {
 
 		cerr << "[L2N2_Cplex::SolveQP] exception: " << e.getMessage() << endl;
 		throw CBMRMException(e.getMessage(), "L2N2_Cplex::SolveQP");
 	}
-
-	objective.setExpr(expr);
-
-	model.add(objective);
 
 	if (verbosity > 1)
 		cout << "[L2N2_Cplex::SolveQP] objective set" << endl;
@@ -150,18 +209,28 @@ CL2N2_Cplex::SolveQP() {
 	if (verbosity > 1)
 		cout << "[L2N2_Cplex::SolveQP] setting constraint" << endl;
 
-	IloRange constraint(env, *b, *b);
+	_constraint.setBounds(*b, *b);
 
-	for (int i = 0; i < dim; i++)
-		constraint.setLinearCoef(vars[i], static_cast<IloNum>(a[i]));
+	if (dim == _oldDim + 1) {
 
-	model.add(constraint);
+		// augment constraint expression
+		_constraint.setLinearCoef(_vars[dim-1], static_cast<IloNum>(a[dim-1]));
+
+	} else {
+
+		// clear constraint
+		_constraint.setExpr(IloNumExpr(_env));
+
+		// fill it
+		for (int i = 0; i < dim; i++)
+			_constraint.setLinearCoef(_vars[i], static_cast<IloNum>(a[i]));
+	}
 
 	if (verbosity > 1)
 		cout << "[L2N2_Cplex::SolveQP] constraint set" << endl;
 
 	if (verbosity > 2)
-		cout << "[L2N2_Cplex::SolveQP] Cplex model is:" << endl << model << endl;
+		cout << "[L2N2_Cplex::SolveQP] Cplex model is:" << endl << _model << endl;
 
 	//////////////////
 	// solve the QP //
@@ -170,24 +239,22 @@ CL2N2_Cplex::SolveQP() {
 	if (verbosity > 1)
 		cout << "[L2N2_Cplex::SolveQP] solving problem" << endl;
 
-	IloCplex cplex(model);
-
-	cplex.solve();
+	_cplex.solve();
 
 	// get solver result message
 	stringstream ss;
-	ss << cplex.getStatus() << flush;
+	ss << _cplex.getStatus() << flush;
 
-	if (cplex.getStatus() != IloAlgorithm::Optimal)
+	if (_cplex.getStatus() != IloAlgorithm::Optimal)
 		throw new CBMRMException(ss.str(), "L2N2_Cplex::SolveQP");
 
 	if (verbosity > 0)
 		cout << "[L2N2_Cplex::SolveQP] solver finished successfully" << endl;
 
 	// extract solution
-	IloNumArray values(env);
+	IloNumArray values(_env);
 
-	cplex.getValues(values, vars);
+	_cplex.getValues(values, _vars);
 
 	for (int i = 0; i < dim; i++)
 		x[i] = static_cast<double>(values[i]);
@@ -203,11 +270,6 @@ CL2N2_Cplex::SolveQP() {
 
 	// clean up
 	values.end();
-	cplex.end();
-	constraint.end();
-	expr.end();
-	objective.end();
-	vars.end();
-	model.end();
-	env.end();
+
+	_oldDim = dim;
 }

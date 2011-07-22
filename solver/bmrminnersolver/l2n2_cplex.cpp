@@ -179,7 +179,7 @@ CL2N2_Cplex::SolveQP() {
 	ss << cplex.getStatus() << flush;
 
 	if (cplex.getStatus() != IloAlgorithm::Optimal)
-		throw new CBMRMException(ss.str(), "L2N2_Cplex::SolveQP");
+		throw CBMRMException(ss.str(), "L2N2_Cplex::SolveQP");
 
 	if (verbosity > 0)
 		cout << "[L2N2_Cplex::SolveQP] solver finished successfully" << endl;

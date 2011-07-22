@@ -16,61 +16,44 @@
  * Created: (07/21/2011)
  */
 
-#ifndef _HAMMINGCOST_HPP_
-#define _HAMMINGCOST_HPP_
+#ifndef _ZEROCOST_HPP_
+#define _ZEROCOST_HPP_
 
 #include "cost.hpp"
 #include "veclabel.hpp"
 
-/** The Hamming cost function. The default implementation gives
+/** A zero cost function.
  *
- *   Δ(y,y') = 1/N \sum_i | y_i - y'_i |
- *
- * If the "normalize" flag is given, N will be the the maximal Hamming cost,
- * otherwise it is just 1.
- *
- * Via the configuration options HammingCost.zeroToOneCost and
- * HammingCost.oneToZeroCost the Hamming cost can be made asymmetric.
+ *   Δ(y,y') = 0
  */
-class HammingCost : public Cost {
+class ZeroCost : public Cost {
 
 public:
 
 	/** Default constructor.
-	 *
-	 * @param data      [read] Pointer to the label data.
-	 * @param normalize [read] Whether to normalize the Hamming distance.
 	 */
-	HammingCost(
-			CVecLabel* data,
-			bool normalize);
+	ZeroCost() {};
 
 	/** Get the constant contribution of the cost function to the objective.
 	 *
 	 * @param y [read]  The ground truth label.
 	 * @param c [write] The constant term of the cost function.
 	 */
-	virtual void constantContribution(const TheMatrix& y, double& c) const;
+	virtual void constantContribution(const TheMatrix& y, double& c) const {
+	
+		c = 0.0;
+	};
 
 	/** Get the linear contribution of the cost function to the objective.
 	 *
 	 * @param y [read]  The ground truth label.
 	 * @param a [write] The linear coefficients.
 	 */
-	virtual void linearContribution(const TheMatrix& y, TheMatrix& a) const;
-
-private:
-
-	// the number of variables in a label y
-	int _numVariables;
-
-	// normalize the Hamming cost?
-	bool _normalize;
-
-	// deviation costs from reference label y
-	double _oneToZeroCost;
-	double _zeroToOneCost;
+	virtual void linearContribution(const TheMatrix& y, TheMatrix& a) const {
+	
+		a.Zero();
+	}
 };
 
-#endif // _HAMMINGCOST_HPP_
+#endif // _ZEROCOST_HPP_
 

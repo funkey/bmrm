@@ -17,8 +17,11 @@
  */
 
 #include "hammingcost.hpp"
+#include "configuration.hpp"
 
-HammingCost::HammingCost(CVecLabel* data, bool normalize) {
+HammingCost::HammingCost(CVecLabel* data, bool normalize) :
+	_oneToZeroCost(1.0),
+	_zeroToOneCost(1.0) {
 
 	// if the labels have dimension 1, we assume that the Hamming distance is
 	// supposed to be computed over all labels (everything else would be
@@ -28,16 +31,20 @@ HammingCost::HammingCost(CVecLabel* data, bool normalize) {
 	else
 		_numVariables = data->LabelDimension();
 
-	// normalize Hamming distance?
-	if (normalize)
-		_costFactor = 1.0/_numVariables;
-	else
-		_costFactor = 1.0;
+	// get the configuration
+	Configuration &config = Configuration::GetInstance();
+
+	if (config.IsSet("HammingCost.oneToZeroCost"))
+		_oneToZeroCost = config.GetDouble("HammingCost.oneToZeroCost");
+	if (config.IsSet("HammingCost.zeroToOneCost"))
+		_zeroToOneCost = config.GetDouble("HammingCost.zeroToOneCost");
+
 }
 
 void
 HammingCost::constantContribution(const TheMatrix& y, double& c) const {
 
+	int numOnes = 0;
 	c = 0;
 
 	for (int i = 0; i < _numVariables; i++) {
@@ -46,14 +53,29 @@ HammingCost::constantContribution(const TheMatrix& y, double& c) const {
 
 		// accumulate constant cost term
 		y.Get(i, value);
-		c += value;
+		numOnes += value;
+
+		c += _oneToZeroCost*value;
 	}
 
-	c *= _costFactor;
+	// normalize Hamming distance?
+	if (_normalize) {
+
+		int numZeros = _numVariables - numOnes;
+
+		// maximum Hamming distance
+		double maxCost =
+				numOnes*_oneToZeroCost +
+				numZeros*_zeroToOneCost;
+
+		c *= 1.0/maxCost;
+	}
 }
 
 void
 HammingCost::linearContribution(const TheMatrix& y, TheMatrix& a) const {
+
+	int numOnes = 0;
 
 	for (int i = 0; i < _numVariables; i++) {
 
@@ -61,8 +83,21 @@ HammingCost::linearContribution(const TheMatrix& y, TheMatrix& a) const {
 
 		// calculate linear cost coefficients
 		y.Get(i, value);
-		a.Set(i, (1.0 - 2.0*value));
+		a.Set(i, (_zeroToOneCost - (_zeroToOneCost + _oneToZeroCost)*value));
+
+		numOnes += value;
 	}
 
-	a.Scale(_costFactor);
+	// normalize Hamming distance?
+	if (_normalize) {
+
+		int numZeros = _numVariables - numOnes;
+
+		// maximum Hamming distance
+		double maxCost =
+				numOnes*_oneToZeroCost +
+				numZeros*_zeroToOneCost;
+
+		a.Scale(1.0/maxCost);
+	}
 }

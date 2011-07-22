@@ -83,49 +83,72 @@ CL2N2_Cplex::SolveQP() {
 		cout << endl;
 	}
 
+	if (verbosity > 1)
+		cout << "[L2N2_Cplex::SolveQP] allocating variable memory" << endl;
+
 	IloEnv env;
 
 	IloModel model(env);
 
 	IloNumVarArray vars(env, dim, 0.0, 1.0, ILOFLOAT);
 
+	if (verbosity > 1)
+		cout << "[L2N2_Cplex::SolveQP] " << dim << " variables allocated" << endl;
+
 	/////////////////////
 	// setup objective //
 	/////////////////////
+
+	if (verbosity > 1)
+		cout << "[L2N2_Cplex::SolveQP] setting objective" << endl;
 
 	IloObjective objective(env);
 	objective.setSense(IloObjective::Minimize);
 
 	IloNumExpr expr(env);
 
-	// quadratic term 0.5*x^T*Q*x
-	for (int row = 0; row < dim; row++) {
+	try {
 
-		for (int col = row; col < dim; col ++) {
+		// quadratic term 0.5*x^T*Q*x
+		for (int row = 0; row < dim; row++) {
 
-			double value = Q[col + row*dim];
+			for (int col = row; col < dim; col ++) {
 
-			if (value == 0)
-				continue;
+				double value = Q[col + row*dim];
 
-			if (col == row) 
-				expr = expr + static_cast<IloNum>(0.5*value)*vars[row]*vars[row];
-			else
-				expr = expr + static_cast<IloNum>(value)*vars[row]*vars[col];
+				if (value == 0)
+					continue;
+
+				if (col == row) 
+					expr = expr + static_cast<IloNum>(0.5*value)*vars[row]*vars[row];
+				else
+					expr = expr + static_cast<IloNum>(value)*vars[row]*vars[col];
+			}
 		}
-	}
 
-	// linear term
-	for (int i = 0; i < dim; i++)
-		expr = expr + static_cast<IloNum>(f[i])*vars[i];
+		// linear term
+		for (int i = 0; i < dim; i++)
+			expr = expr + static_cast<IloNum>(f[i])*vars[i];
+
+	} catch (IloMemoryException e) {
+
+		cerr << "[L2N2_Cplex::SolveQP] exception: " << e.getMessage() << endl;
+		throw CBMRMException(e.getMessage(), "L2N2_Cplex::SolveQP");
+	}
 
 	objective.setExpr(expr);
 
 	model.add(objective);
 
+	if (verbosity > 1)
+		cout << "[L2N2_Cplex::SolveQP] objective set" << endl;
+
 	//////////////////////
 	// setup constraint //
 	//////////////////////
+
+	if (verbosity > 1)
+		cout << "[L2N2_Cplex::SolveQP] setting constraint" << endl;
 
 	IloRange constraint(env, *b, *b);
 
@@ -134,12 +157,18 @@ CL2N2_Cplex::SolveQP() {
 
 	model.add(constraint);
 
+	if (verbosity > 1)
+		cout << "[L2N2_Cplex::SolveQP] constraint set" << endl;
+
 	if (verbosity > 2)
 		cout << "[L2N2_Cplex::SolveQP] Cplex model is:" << endl << model << endl;
 
 	//////////////////
 	// solve the QP //
 	//////////////////
+
+	if (verbosity > 1)
+		cout << "[L2N2_Cplex::SolveQP] solving problem" << endl;
 
 	IloCplex cplex(model);
 

@@ -125,18 +125,20 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	TheMatrix f(_numVariables, 1);
 	_data->XMultW(w, f);
 
-	// c = c1 - c2 = const_cost - <y',Xw>
+	// c = c1 - c2 = const_cost - gamma*<y',Xw>
 
 	// c1 = const_cost
 	double c1 = _constantCostContribution;
 
-	// c2 = <y',Xw>
+	// c2 = gamma*<y',Xw>
 	double c2;
 	_data->labels().Dot(f, c2);
+	c2 *= _gamma;
 
 	double c = c1 - c2;
 
-	// f = Xw + (1-2y')*gamma
+	// f = gamma*Xw + (1-2y')
+	f.Scale(_gamma);
 	f.Add(_linearCostContribution);
 
 	if (_verbosity > 2) {
@@ -246,8 +248,9 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		phiGt.Print();
 	}
 
-	// gradient = phiCu - phiGt
+	// gradient = gamma*(phiCu - phiGt)
 	grad.Minus(phiGt);
+	grad.Scale(_gamma);
 
 	computeGradientTime.Stop();
 

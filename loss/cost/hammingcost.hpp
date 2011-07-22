@@ -22,12 +22,15 @@
 #include "cost.hpp"
 #include "veclabel.hpp"
 
-/** The Hamming cost function.
+/** The Hamming cost function. The default implementation gives
  *
- *   Δ(y,y') = 1/N \sum_i | y_i - y'_i | = 1/N (<y,1> + <1-2y,y'>)
+ *   Δ(y,y') = 1/N \sum_i | y_i - y'_i |
  *
- * where "1" denotes a vector of 1s. If the "normalize" flag is given, N will be
- * the number of elements in y, otherwise it's just 1.
+ * If the "normalize" flag is given, N will be the the maximal Hamming cost,
+ * otherwise it is just 1.
+ *
+ * Via the configuration options HammingCost.zeroToOneCost and
+ * HammingCost.oneToZeroCost the Hamming cost can be made asymmetric.
  */
 class HammingCost : public Cost {
 
@@ -38,7 +41,9 @@ public:
 	 * @param data      [read] Pointer to the label data.
 	 * @param normalize [read] Whether to normalize the Hamming distance.
 	 */
-	HammingCost(CVecLabel* data, bool normalize);
+	HammingCost(
+			CVecLabel* data,
+			bool normalize);
 
 	/** Get the constant contribution of the cost function to the objective.
 	 *
@@ -59,8 +64,12 @@ private:
 	// the number of variables in a label y
 	int _numVariables;
 
-	// factor by which to scale the cost function
-	double _costFactor;
+	// normalize the Hamming cost?
+	bool _normalize;
+
+	// deviation costs from reference label y
+	double _oneToZeroCost;
+	double _zeroToOneCost;
 };
 
 #endif // _HAMMINGCOST_HPP_

@@ -202,5 +202,12 @@ CL2N2_Cplex::SolveQP() {
 	}
 
 	// clean up
+	values.end();
+	cplex.end();
+	constraint.end();
+	expr.end();
+	objective.end();
+	vars.end();
+	model.end();
 	env.end();
 }

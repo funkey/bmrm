@@ -150,7 +150,9 @@ CL2N2_Cplex::SolveQP() {
 	if (verbosity > 1)
 		cout << "[L2N2_Cplex::SolveQP] setting constraint" << endl;
 
-	IloRange constraint(env, *b, *b);
+	// according to the other l2n2 implementations, |x| <= 1 for negative loss
+	// functions, otherwise |x| == 1
+	IloRange constraint(env, (nonNegativeSlack ? *b : 0.0), *b);
 
 	for (int i = 0; i < dim; i++)
 		constraint.setLinearCoef(vars[i], static_cast<IloNum>(a[i]));

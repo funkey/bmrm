@@ -20,6 +20,7 @@
 #include "configuration.hpp"
 
 HammingCost::HammingCost(CVecLabel* data, bool normalize) :
+	_normalize(normalize),
 	_oneToZeroCost(1.0),
 	_zeroToOneCost(1.0) {
 

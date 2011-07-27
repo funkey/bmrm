@@ -71,6 +71,26 @@ private:
 	 */
 	void ComputeCostContribution(const TheMatrix& groundTruth);
 
+	/** Computes the constant (c) and linear (l) contribution of the
+	 * gamma function with respect to a ground-truth labeling.
+	 * The resulting gamma function for any labeling y is then c + <l,y>.
+	 */
+	void ComputeGammaContribution(const TheMatrix& groundTruth);
+
+	/** Computes the number of auxilary variables and corresponding constraints
+	 * needed to express a linear gamma function in the objective. Linear gamma
+	 * functions result in quadratic terms and therefore auxilary variables are
+	 * needed to restore a linear program.
+	 */
+	void AddAuxilaryVariables();
+
+	/** Determines and sets all linear constraints for the objective. Linear
+	 * constraints may come from the data (explicitly given by the user) and/or
+	 * from the auxilary variables that are used to express quadratic terms in
+	 * the objective.
+	 */
+	void SetLinearConstraints();
+
 	/** The training data.
 	 */
 	CConsVecData* _data;
@@ -83,18 +103,28 @@ private:
 	 */
 	unsigned int _numFeatures;
 
-	/** The number of binary variables in _data.
+	/** The number of all binary variables in the objective.
 	 */
 	unsigned int _numVariables;
 
-	/** The number of linear constraints on the label data.
+	/** The number of auxilary variables (used for modelling quadratic terms in
+	 * the objective) in the objective.
 	 */
-	unsigned int _numEqConstraints;
-	unsigned int _numIneqConstraints;
+	unsigned int _numAuxilaryVariables;
+
+	/** The number of all linear constraints on the objective.
+	 */
+	unsigned int _numEqualities;
+	unsigned int _numInequalities;
+
+	/** The number of linear constraints on the auxilary variables only.
+	 */
+	unsigned int _numAuxilaryEqualities;
+	unsigned int _numAuxilaryInequalities;
 
 	/** The linear solver used to compute the gradient and loss.
 	 */
-	CplexSolver _solver;
+	CplexSolver* _solver;
 
 	/** The cost function Δ(y,y') to be used for the margin scaling.
 	 */
@@ -104,12 +134,22 @@ private:
 	 */
 	double _costFactor;
 
-	/** The coefficient of the margin term.
+	/** The components of the loss function.
 	 */
-	double _gamma;
+	double    _g_c;
+	TheMatrix _g_l;
+	double    _m_c;
+	TheMatrix _m_l;
+	double    _c_c;
+	TheMatrix _c_l;
 
-	double    _constantCostContribution;
-	TheMatrix _linearCostContribution;
+	/** Is the gamma function constant?
+	 */
+	bool _gammaConst;
+
+	/** The ground-truth labeling as given by the data.
+	 */
+	TheMatrix _y;
 
 	/** The verbosity of the output. Set via Loss.verbosity in the config file.
 	 */

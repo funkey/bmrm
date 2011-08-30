@@ -376,9 +376,14 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		phiGt.Print();
 	}
 
+	// gamma = g_c + <g_l,y'>
+	double gamma;
+	_g_l.Dot(y_, gamma);
+	gamma += _g_c;
+
 	// gradient = gamma*(phiCu - phiGt)
 	grad.Minus(phiGt);
-	grad.Scale(_g_c);
+	grad.Scale(gamma);
 
 	computeGradientTime.Stop();
 

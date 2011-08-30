@@ -530,12 +530,21 @@ SoftMarginLoss::SetLinearConstraints() {
 
 	if (_numEqualities > 0) {
 
-		if (_gammaConst) // use equalities from data directly
+		// check if ground-truth fulfills the constraints
+		if (_verbosity > 0)
+			if (_numEqualities - _numAuxiliaryEqualities > 0)
+				CheckSolutionIntegrity(
+						_data->GetEqualityCoefs(),
+						_y, 0,
+						_data->GetEqualityValues());
+
+		if (_gammaConst) { // use equalities from data directly
 
 			_solver->SetEqualities(
 					_data->GetEqualityCoefs(),
 					_data->GetEqualityValues());
-		else {
+
+		} else {
 
 			if (_verbosity > 1)
 				cout << "[SoftMarginLoss::SetLinearConstraints] "
@@ -627,12 +636,21 @@ SoftMarginLoss::SetLinearConstraints() {
 
 	if (_numInequalities > 0) {
 
-		if (_gammaConst) // use inequalities from data directly
+		// check if ground-truth fulfills the constraints
+		if (_verbosity > 0)
+			if (_numInequalities - _numAuxiliaryInequalities > 0)
+				CheckSolutionIntegrity(
+						_data->GetInequalityCoefs(),
+						_y, -1,
+						_data->GetInequalityValues());
+
+		if (_gammaConst) { // use inequalities from data directly
 
 			_solver->SetInequalities(
 					_data->GetInequalityCoefs(),
 					_data->GetInequalityValues());
-		else {
+
+		} else {
 
 			if (_verbosity > 1)
 				cout << "[SoftMarginLoss::SetLinearConstraints] "
@@ -708,4 +726,59 @@ SoftMarginLoss::SetLinearConstraints() {
 			_solver->SetInequalities(ineqCoefs, ineqValues);
 		}
 	}
+}
+
+void
+SoftMarginLoss::CheckSolutionIntegrity(
+		const TheMatrix& A,
+		const TheMatrix& y,
+		int relation,
+		const TheMatrix& b) {
+
+	TheMatrix x(b.Rows(), 1);
+	A.Dot(y, x);
+
+	for (int i = 0; i < A.Rows(); i++) {
+
+		double x_i;
+		double b_i;
+
+		x.Get(i, x_i);
+		b.Get(i, b_i);
+
+		switch (relation) {
+
+			case -1:
+				if (x_i > b_i) {
+					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
+					     << "ground-truth violates " << i << "th "
+					     << "\"<=\" constraint!" << endl;
+					return;
+				}
+				break;
+
+			case 0:
+				if (x_i != b_i) {
+					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
+					     << "ground-truth violates " << i << "th "
+					     << "\"==\" constraint!" << endl;
+					return;
+				}
+				break;
+
+			case 1:
+				if (x_i < b_i) {
+					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
+					     << "ground-truth violates " << i << "th "
+					     << "\">=\" constraint!" << endl;
+					return;
+				}
+				break;
+		}
+	}
+
+	cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
+	     << "ground-truth satisfies "
+	     << (relation == 0 ? "" : "in") << "equality constraints"
+	     << endl;
 }

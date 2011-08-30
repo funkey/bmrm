@@ -104,12 +104,63 @@ CplexSolver::SetObjective(const TheMatrix& a, double constant, Sense sense) {
 void
 CplexSolver::SetEqualities(const TheMatrix& A, const TheMatrix& b) {
 
-	IloRangeArray constraints(_env);
-
 	if (_verbosity > 1)
 		cout << "[CplexSolver::SetEqualities] setting "
-		     << _numIneqConstraints
+		     << _numEqConstraints
 		     << " equality constraints" << endl;
+
+	CTimer totalTimer;
+	totalTimer.Start();
+
+	// 0 --> equality constraints
+	SetConstraints(A, b, 0);
+
+	totalTimer.Stop();
+
+	if (_verbosity > 1)
+		cout << "[CplexSolver::SetEqualities] "
+		     << _numEqConstraints << " set in "
+		     << totalTimer.WallclockTotal()
+		     << " seconds" << endl;
+
+	if (_verbosity > 2)
+		cout << "[CplexSolver::SetEqualities] "
+		     << "model after setting equality constraints: "
+			 << endl << _model << endl;
+}
+
+void
+CplexSolver::SetInequalities(const TheMatrix& A, const TheMatrix& b) {
+
+	if (_verbosity > 1)
+		cout << "[CplexSolver::SetInequalities] setting "
+		     << _numIneqConstraints
+		     << " inequality constraints" << endl;
+
+	CTimer totalTimer;
+	totalTimer.Start();
+
+	// -1 -->  "<=" inequality constraints
+	SetConstraints(A, b, -1);
+
+	totalTimer.Stop();
+
+	if (_verbosity > 1)
+		cout << "[CplexSolver::SetInequalities] "
+		     << _numIneqConstraints << " set in "
+		     << totalTimer.WallclockTotal()
+		     << " seconds" << endl;
+
+	if (_verbosity > 2)
+		cout << "[CplexSolver::SetInequalities] "
+		     << "model after setting inequality constraints: "
+			 << endl << _model << endl;
+}
+
+void CplexSolver::SetConstraints(const TheMatrix& A, const TheMatrix& b, int relation) {
+
+	IloRangeArray constraints(_env);
+	unsigned int  numConstraints = A.Rows();
 
 	CTimer initTimer;
 	initTimer.Start();
@@ -121,19 +172,28 @@ CplexSolver::SetEqualities(const TheMatrix& A, const TheMatrix& b) {
 	initTimer.Stop();
 
 	if (_verbosity > 1)
-		cout << "[CplexSolver::SetEqualities] "
+		cout << "[CplexSolver::SetConstraints] "
 		     << "time initialising           : "
 		     << initTimer.WallclockTotal() << endl;
 
-	for (unsigned int j = 0; j < _numEqConstraints; j++) {
+	CTimer extractTimer;
+	CTimer setTimer;
 
-		if (_verbosity > 1)
-			if (j % 100 == 0)
-				cout << "[CplexSolver::SetEqualities] "
+	for (unsigned int j = 0; j < numConstraints; j++) {
+
+		if (_verbosity > 1 && j > 0) {
+			if (j % 1000 == 0) {
+
+				cout << "[CplexSolver::SetConstraints] "
 				     << j << " constraints set so far"
-				     << endl;
+				     << " (mean extraction time: "
+				     << extractTimer.WallclockTotal()/j
+				     << ", mean set time: "
+				     << setTimer.WallclockTotal()/j
+				     << ")" << endl;
+			}
+		}
 
-		CTimer extractTimer;
 		extractTimer.Start();
 
 		// get the whole row
@@ -145,11 +205,13 @@ CplexSolver::SetEqualities(const TheMatrix& A, const TheMatrix& b) {
 
 		extractTimer.Stop();
 
-		CTimer setTimer;
 		setTimer.Start();
 
 		// set the bounds
-		IloRange constraint(_env, value, value);
+		IloRange constraint(
+				_env,
+				(relation < 0 ? -IloInfinity : value),
+				(relation > 0 ?  IloInfinity : value));
 
 		// set the coefficients
 		for (unsigned int i = 0; i < numEntries; i++) {
@@ -163,109 +225,12 @@ CplexSolver::SetEqualities(const TheMatrix& A, const TheMatrix& b) {
 		constraints.add(constraint);
 
 		setTimer.Stop();
-
-		if (_verbosity > 1) {
-
-			cout << "[CplexSolver::SetEqualities] "
-			     << "time extracting coefficients: "
-			     << extractTimer.WallclockTotal() << endl;
-			cout << "[CplexSolver::SetEqualities] "
-			     << "time setting coefficients   : "
-			     << setTimer.WallclockTotal() << endl;
-		}
-	}
-
-	_model.add(constraints);
-
-	if (_verbosity > 2)
-		cout << "[CplexSolver::SetEqualities] "
-		     << "model after setting equality constraints: "
-			 << endl << _model << endl;
-}
-
-void
-CplexSolver::SetInequalities(const TheMatrix& C, const TheMatrix& d) {
-
-	IloRangeArray constraints(_env);
-
-	if (_verbosity > 1)
-		cout << "[CplexSolver::SetInequalities] setting "
-		     << _numIneqConstraints
-		     << " inequality constraints" << endl;
-
-	CTimer initTimer;
-	initTimer.Start();
-
-	unsigned int  numEntries = 0;
-	double*       coefs      = new double[_numVariables];
-	unsigned int* indices    = new unsigned int[_numVariables];
-
-	initTimer.Stop();
-
-	if (_verbosity > 1)
-		cout << "[CplexSolver::SetInequalities] "
-		     << "time initialising           : "
-		     << initTimer.WallclockTotal() << endl;
-
-	for (unsigned int j = 0; j < _numIneqConstraints; j++) {
-
-		if (_verbosity > 1)
-			if (j % 100 == 0)
-				cout << "[CplexSolver::SetInequalities] "
-				     << j << " constraints set so far"
-				     << endl;
-
-		CTimer extractTimer;
-		extractTimer.Start();
-
-		// get the whole row
-		C.GetRow(j, numEntries, coefs, indices);
-
-		// get the rhs value
-		double value;
-		d.Get(j, value);
-
-		extractTimer.Stop();
-
-		CTimer setTimer;
-		setTimer.Start();
-
-		// set the bounds
-		IloRange constraint(_env, -IloInfinity, value);
-
-		// set the coefficients
-		for (unsigned int i = 0; i < numEntries; i++) {
-
-			constraint.setLinearCoef(
-					_variables[indices[i]],
-					static_cast<IloNum>(coefs[i]));
-		}
-
-		// add to the constraint array
-		constraints.add(constraint);
-
-		setTimer.Stop();
-
-		if (_verbosity > 1) {
-
-			cout << "[CplexSolver::SetInequalities] "
-			     << "time extracting coefficients: "
-			     << extractTimer.WallclockTotal() << endl;
-			cout << "[CplexSolver::SetInequalities] "
-			     << "time setting coefficients   : "
-			     << setTimer.WallclockTotal() << endl;
-		}
 	}
 
 	delete[] coefs;
 	delete[] indices;
 
 	_model.add(constraints);
-
-	if (_verbosity > 2)
-		cout << "[CplexSolver::SetInequalities] "
-		     << "model after setting inequality constraints: "
-			 << endl << _model << endl;
 }
 
 bool

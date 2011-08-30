@@ -63,11 +63,11 @@ public:
 	virtual void SetEqualities(const TheMatrix& A, const TheMatrix& b);
 
 	/**
-	 * Set the linear inequality constraints Cx <= d.
-	 * @param C [read] Coefficient matrix of the constraints.
-	 * @param d [read] Values of the constraints.
+	 * Set the linear inequality constraints Ax <= b.
+	 * @param A [read] Coefficient matrix of the constraints.
+	 * @param b [read] Values of the constraints.
 	 */
-	virtual void SetInequalities(const TheMatrix& C, const TheMatrix& d);
+	virtual void SetInequalities(const TheMatrix& A, const TheMatrix& b);
 
 	/**
 	 * Solve the integer linear program.
@@ -79,6 +79,17 @@ public:
 	virtual bool Solve(TheMatrix& x, double& value, string& msg);
 
 private:
+
+	/**
+	 * Set the linear (in)equality constraints Ax <=|==|>= b.
+	 * @param A [read] Coefficient matrix of the constraints.
+	 * @param b [read] Values of the constraints.
+	 * @param relation [read] The relation of the constraints:
+	 *                          -1 --> "<="
+	 *                           0 --> "=="
+	 *                           1 --> ">="
+	 */
+	void SetConstraints(const TheMatrix& A, const TheMatrix& b, int relation);
 
 	// the Ilo environment
 	IloEnv _env;

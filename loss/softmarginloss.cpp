@@ -33,9 +33,9 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	_numVariables(_data->NumOfLabel()),
 	_numEqualities(_data->NumOfEqualities()),
 	_numInequalities(_data->NumOfInequalities()),
-	_numAuxilaryVariables(0),
-	_numAuxilaryEqualities(0),
-	_numAuxilaryInequalities(0),
+	_numAuxiliaryVariables(0),
+	_numAuxiliaryEqualities(0),
+	_numAuxiliaryInequalities(0),
 	_solver(0),
 	_costFunction(0),
 	_costFactor(1.0),
@@ -71,10 +71,10 @@ SoftMarginLoss::SoftMarginLoss(CModel* model, CConsVecData* data) :
 	// calculate gamma contribution (does not change anymore)
 	ComputeGammaContribution(_y);
 
-	// for linear gamma functions, we need to add auxilary variables for the
+	// for linear gamma functions, we need to add auxiliary variables for the
 	// resulting quadratic expression
 	if (!_gammaConst)
-		AddAuxilaryVariables();
+		AddAuxiliaryVariables();
 
 	_solver = new CplexSolver(
 			_numVariables,
@@ -117,9 +117,9 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	// the current weights
 	TheMatrix& w = _model->GetW();
 
-	////////////////////////////////////////////////////////////////////////
-	// compute linear coefficients f and constant part c of the objective //
-	////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////
+	// compute constant part c of the objective //
+	//////////////////////////////////////////////
 
 	CTimer computeCoefficientsTime;
 	computeCoefficientsTime.Start();
@@ -135,81 +135,141 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	// m_l = Xw
 	_data->XMultW(w, _m_l);
 
-	// c = g_c*m_c + c_c
-
 	// update constant margin contribution
 	// m_c = -<Xw,y> = -<m_l,y>
 	_m_l.Dot(_y, _m_c);
 	_m_c *= -1;
 
+	// constant part of objective
 	double c = _g_c*_m_c + _c_c;
 
-	// f = g_c*m_l + m_c*g_l + c_l
+	//////////////////////////////////////////////////
+	// compute linear coefficients of the objective //
+	//////////////////////////////////////////////////
+
+	// f is a vector of linear coefficients for the problem variables y' and the
+	// auxiliary variables a:
+	//
+	// f = (f_y f_a)^T
+	//
+	// f_y = g_c*m_l + m_c*g_l + c_l + q_l
+	// f_a = q_q
+
+	TheMatrix f_y(_m_l);
 
 	// _g_c*_m_l ...
-	TheMatrix f(_m_l);
-	f.Scale(_g_c);
+	f_y.Scale(_g_c);
 
-	// ... + m_c*g_l ...
+	// ... + m_c*g_l ... (only if g_l ≠ 0)
 	if (!_gammaConst) {
 
 		TheMatrix t(_g_l);
 		t.Scale(_m_c);
-		f.Add(t);
+
+		f_y.Add(t);
 	}
 
 	// ... + c_l
-	f.Add(_c_l);
+	f_y.Add(_c_l);
 
 	if (_verbosity > 2) {
 
 		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
 			 << "constant term of objective: " << c << endl;
 		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-			 << "coefficients of objective: ";
-		f.Print();
+			 << "linear coefficients of objective: ";
+		f_y.Print();
 	}
 
-	/////////////////////////////////////////////
-	// compute quadratic term of the objective //
-	/////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	// compute auxiliary coefficients for quadratic term of the objective //
+	////////////////////////////////////////////////////////////////////////
+
+	CTimer setCoefficientsTime;
 
 	if (!_gammaConst) {
 
-		TheMatrix q(_numVariables, _numVariables);
+		TheMatrix f_a(_numAuxiliaryVariables, 1);
 
-		for (int i = 0; i < _numVariables; i++)
-			for (int j = 0; j < _numVariables; j++) {
+		int varnum = 0;
 
-				double g_l_i;
+		// f_a is vectorized upper triangle of Q ≈ Γ_l*M_l^T, where Q is lower
+		// triabgle zero matrix such that x^T*Q*x = x^T*(Γ_l*M_l^T)*x for every
+		// x.
+		//
+		// f_a = vec(_g_l*_m_l^T)
+		//
+		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+
+			double g_l_i;
+			double m_l_i;
+
+			_g_l.Get(i, g_l_i);
+			_m_l.Get(i, m_l_i);
+
+			for (int j = i + 1; j < _numVariables - _numAuxiliaryVariables; j++) {
+
+				double g_l_j;
 				double m_l_j;
 
-				_g_l.Get(i, g_l_i);
+				_g_l.Get(j, g_l_j);
 				_m_l.Get(j, m_l_j);
 
-				q.Set(i, j, g_l_i*m_l_j);
+				f_a.Set(varnum, g_l_i*m_l_j + g_l_j*m_l_i);
+				varnum += 3;
 			}
+
+			// diagonal of Q is linear for binary y, therefore we add it to f_y
+			double current;
+			f_y.Get(i, current);
+			f_y.Set(i, current + g_l_i*m_l_i);
+		}
 
 		if (_verbosity > 2) {
 
 			cout << "[SoftMarginLoss::ComputeLossAndGradient] "
-				 << "quadradic term of objective: " << endl;
-			q.Print();
+				 << "augmented linear coefficients of objective: ";
+			f_y.Print();
+
+			cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+				 << "linearized quadratic coefficients of objective: ";
+			f_a.Print();
 		}
+
+		// join linear and linearized quadratic coefficients
+		// TODO: reuse f
+		TheMatrix f(_numVariables, 1);
+
+		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+			double value;
+			f_y.Get(i, value);
+			f.Set(i, value);
+		}
+		for (int i = _numVariables - _numAuxiliaryVariables; i < _numVariables; i++) {
+			double value;
+			f_a.Get(i - (_numVariables - _numAuxiliaryVariables), value);
+			f.Set(i, value);
+		}
+
+		computeCoefficientsTime.Stop();
+		setCoefficientsTime.Start();
+
+		// set objective in linear solver
+		_solver->SetObjective(f, c, LinearProgramSolver::MAXIMIZE);
+
+		setCoefficientsTime.Stop();
+
+	} else {
+
+		computeCoefficientsTime.Stop();
+		setCoefficientsTime.Start();
+
+		// set objective in linear solver
+		_solver->SetObjective(f_y, c, LinearProgramSolver::MAXIMIZE);
+
+		setCoefficientsTime.Stop();
 	}
 
-	computeCoefficientsTime.Stop();
-
-	CTimer setCoefficientsTime;
-	setCoefficientsTime.Start();
-
-	// set objective in linear solver
-	_solver->SetObjective(f, c, LinearProgramSolver::MAXIMIZE);
-
-	// TODO:
-	// set quadratic term
-
-	setCoefficientsTime.Stop();
 
 	if (_verbosity > 1) {
 
@@ -229,12 +289,29 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	solveTime.Start();
 
 	// the solution vector
-	TheMatrix y_(_numVariables, 1, SML::SPARSE);
+	// TODO: reuse y_
+	TheMatrix y_(_numVariables - _numAuxiliaryVariables, 1, SML::SPARSE);
 
 	// the return message of the solver
 	string msg;
+	bool success;
 
-	bool success = _solver->Solve(y_, loss, msg);
+	if (!_gammaConst) {
+
+		TheMatrix y_all(_numVariables, 1, SML::SPARSE);
+		success = _solver->Solve(y_all, loss, msg);
+
+		// read back the problem variable part only
+		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+			double value;
+			y_all.Get(i, value);
+			y_.Set(i, value);
+		}
+
+	} else {
+
+		success = _solver->Solve(y_, loss, msg);
+	}
 
 	solveTime.Stop();
 
@@ -397,11 +474,11 @@ SoftMarginLoss::ComputeGammaContribution(const TheMatrix& groundTruth) {
 }
 
 void
-SoftMarginLoss::AddAuxilaryVariables() {
+SoftMarginLoss::AddAuxiliaryVariables() {
 
 	/*
 	 * Assuming we have a quadratic part in our objective of the form y^T*Q*y,
-	 * we introduce one auxilary variable for each pair (i,j), i ≠ j, i < j:
+	 * we introduce one auxiliary variable for each pair (i,j), i ≠ j, i < j:
 	 *
 	 * y^T*Q*y = y^T*Q'*y,
 	 *
@@ -409,22 +486,38 @@ SoftMarginLoss::AddAuxilaryVariables() {
 	 * and Q'_ii = Q_ii.
 	 *
 	 * The diagonal entries of Q' contribute linearly to the objective (since y
-	 * is binary). It remains to add auxilary variables for the upper triangle
+	 * is binary). It remains to add auxiliary variables for the upper triangle
 	 * without the diagonal, that is, for n(n-1)/2 entries.
 	 */
+
+	if (_verbosity > 1)
+		cout << "[SoftMarginLoss::AddAuxiliaryVariables] "
+		     << "computing number of auxiliary variables for "
+			 << _numVariables << " problem variables" << endl;
 
 	int numEntries =
 			_numVariables*(_numVariables-1)/2;
 
+	if (_verbosity > 2)
+		cout << "[SoftMarginLoss::AddAuxiliaryVariables] Q has "
+		     << numEntries << " entries in upper triangle" << endl;
+
 	// a_ij, a_-ij, a_i-j
-	_numAuxilaryVariables = numEntries*3;
+	_numAuxiliaryVariables = numEntries*3;
 
-	_numAuxilaryInequalities = numEntries;
-	_numAuxilaryEqualities   = numEntries*2;
+	_numAuxiliaryInequalities = numEntries;
+	_numAuxiliaryEqualities   = numEntries*2;
 
-	_numVariables    += _numAuxilaryVariables;
-	_numEqualities   += _numAuxilaryEqualities;
-	_numInequalities += _numAuxilaryInequalities;
+	if (_verbosity > 2)
+		cout << "[SoftMarginLoss::AddAuxiliaryVariables] add "
+		     << _numAuxiliaryVariables << " auxiliary variables, "
+		     << _numAuxiliaryEqualities << " auxiliary equalities, "
+		     << _numAuxiliaryInequalities << " auxiliary inequalities"
+		     << endl;
+
+	_numVariables    += _numAuxiliaryVariables;
+	_numEqualities   += _numAuxiliaryEqualities;
+	_numInequalities += _numAuxiliaryInequalities;
 }
 
 void
@@ -439,27 +532,48 @@ SoftMarginLoss::SetLinearConstraints() {
 					_data->GetEqualityValues());
 		else {
 
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "creating equalities coefficients and values for "
+				     << _numEqualities << " equalities and "
+				     << _numVariables << " variables"
+				     << endl;
+
 			// create equality coefficent matrix and value vector
 			TheMatrix eqCoefs(_numEqualities, _numVariables, SML::SPARSE);
-			TheMatrix eqValues(_numEqualities, SML::DENSE);
+			TheMatrix eqValues(_numEqualities, 1, SML::DENSE);
+
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "filling coefficients and values..."
+				     << endl;
 
 			// equalities from the data
-			for (int i = 0; i < _numVariables - _numAuxilaryVariables; i++) {
-				for (int j = 0; j < _numEqualities - _numAuxilaryEqualities; j++) {
+			for (int j = 0; j < _numEqualities - _numAuxiliaryEqualities; j++) {
+				for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 
 					double coef;
 					_data->GetEqualityCoefs().Get(j, i, coef);
 
 					eqCoefs.Set(j, i, coef);
 				}
+
+				double value;
+				_data->GetEqualityValues().Get(j, value);
+				eqValues.Set(j, value);
 			}
 
-			// equalities from the auxilary variables
-			int auxEqNum  = _numEqualities - _numAuxilaryEqualities;
-			int auxVarNum = _numVariables;
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "...done with data part..."
+				     << endl;
 
-			for (int i = 0; i < _numVariables; i++) {
-				for (int j = i+1; j < _numVariables; j++) {
+			// equalities from the auxiliary variables
+			int auxEqNum  = _numEqualities - _numAuxiliaryEqualities;
+			int auxVarNum = _numVariables  - _numAuxiliaryVariables;
+
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+				for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {
 
 					// 1*a_ij + 1*a_i-j - 1*y_i == 0
 					eqCoefs.Set(auxEqNum, auxVarNum,     1.0); // a_ij
@@ -480,6 +594,11 @@ SoftMarginLoss::SetLinearConstraints() {
 					auxVarNum += 3;
 				}
 			}
+
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "...done with auxiliary part."
+				     << endl;
 
 			if (auxEqNum != _numEqualities)
 				cout << "[SoftMarginLoss::SetLinearConstraints] " << auxEqNum
@@ -510,9 +629,78 @@ SoftMarginLoss::SetLinearConstraints() {
 					_data->GetInequalityValues());
 		else {
 
-			// create inequality coefficent matrix
-			// create inequality value vector
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "creating inequalities coefficients and values for "
+				     << _numInequalities << " inequalities and "
+				     << _numVariables << " variables"
+				     << endl;
+
+			// create equality coefficent matrix and value vector
+			TheMatrix ineqCoefs(_numInequalities, _numVariables, SML::SPARSE);
+			TheMatrix ineqValues(_numInequalities, 1, SML::DENSE);
+
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "filling coefficients and values..."
+				     << endl;
+
+			// inequalities from the data
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+				for (int j = 0; j < _numInequalities - _numAuxiliaryInequalities; j++) {
+
+					double coef;
+					_data->GetInequalityCoefs().Get(j, i, coef);
+
+					ineqCoefs.Set(j, i, coef);
+				}
+			}
+
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "...done with data part..."
+				     << endl;
+
+			// inequalities from the auxiliary variables
+			int auxIneqNum  = _numInequalities - _numAuxiliaryInequalities;
+			int auxVarNum   = _numVariables  - _numAuxiliaryVariables;
+
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+				for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {
+
+					// 1*a_ij + 1*a_i-j + 1*a_-ij <= 1
+					ineqCoefs.Set(auxIneqNum, auxVarNum,     1.0); // a_ij
+					ineqCoefs.Set(auxIneqNum, auxVarNum + 1, 1.0); // a_i-j
+					ineqCoefs.Set(auxIneqNum, auxVarNum + 2, 1.0); // a_-ij
+					ineqValues.Set(auxIneqNum, 1);
+
+					auxIneqNum++;
+					auxVarNum += 3;
+				}
+			}
+
+			if (_verbosity > 1)
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "...done with auxiliary part."
+				     << endl;
+
+			if (auxIneqNum != _numInequalities)
+				cout << "[SoftMarginLoss::SetLinearConstraints] " << auxIneqNum
+				     << " linear inequalities set instead of " << _numInequalities
+				     << endl;
+
+			if (_verbosity > 2) {
+
+				cout << "[SoftMarginLoss::SetLinearConstraints] "
+				     << "linear inequality constraints:" << endl;
+				cout << endl;
+				ineqCoefs.Print();
+				cout << endl;
+				ineqValues.Print();
+			}
+
 			// set them
+			_solver->SetInequalities(ineqCoefs, ineqValues);
 		}
 	}
 }

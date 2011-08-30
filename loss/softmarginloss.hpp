@@ -82,7 +82,7 @@ private:
 	 * functions result in quadratic terms and therefore auxilary variables are
 	 * needed to restore a linear program.
 	 */
-	void AddAuxilaryVariables();
+	void AddAuxiliaryVariables();
 
 	/** Determines and sets all linear constraints for the objective. Linear
 	 * constraints may come from the data (explicitly given by the user) and/or
@@ -110,7 +110,7 @@ private:
 	/** The number of auxilary variables (used for modelling quadratic terms in
 	 * the objective) in the objective.
 	 */
-	unsigned int _numAuxilaryVariables;
+	unsigned int _numAuxiliaryVariables;
 
 	/** The number of all linear constraints on the objective.
 	 */
@@ -119,8 +119,8 @@ private:
 
 	/** The number of linear constraints on the auxilary variables only.
 	 */
-	unsigned int _numAuxilaryEqualities;
-	unsigned int _numAuxilaryInequalities;
+	unsigned int _numAuxiliaryEqualities;
+	unsigned int _numAuxiliaryInequalities;
 
 	/** The linear solver used to compute the gradient and loss.
 	 */

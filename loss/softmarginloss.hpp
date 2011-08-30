@@ -91,6 +91,15 @@ private:
 	 */
 	void SetLinearConstraints();
 
+	/** Checks whether the ground-truth fulfills the requirements imposed by the
+	 * linear constraints.
+	 */
+	void CheckSolutionIntegrety(
+			const TheMatrix& A,
+			const TheMatrix& y,
+			int relation,
+			const TheMatrix& b);
+
 	/** The training data.
 	 */
 	CConsVecData* _data;

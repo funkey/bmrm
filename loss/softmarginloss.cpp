@@ -531,11 +531,12 @@ SoftMarginLoss::SetLinearConstraints() {
 	if (_numEqualities > 0) {
 
 		// check if ground-truth fulfills the constraints
-		if (_numEqualities - _numAuxiliaryEqualities > 0)
-			CheckSolutionIntegrety(
-					_data->GetEqualityCoefs(),
-					_y, 0,
-					_data->GetEqualityValues());
+		if (_verbosity > 0)
+			if (_numEqualities - _numAuxiliaryEqualities > 0)
+				CheckSolutionIntegrity(
+						_data->GetEqualityCoefs(),
+						_y, 0,
+						_data->GetEqualityValues());
 
 		if (_gammaConst) { // use equalities from data directly
 
@@ -636,11 +637,12 @@ SoftMarginLoss::SetLinearConstraints() {
 	if (_numInequalities > 0) {
 
 		// check if ground-truth fulfills the constraints
-		if (_numInequalities - _numAuxiliaryInequalities > 0)
-			CheckSolutionIntegrety(
-					_data->GetInequalityCoefs(),
-					_y, -1,
-					_data->GetInequalityValues());
+		if (_verbosity > 0)
+			if (_numInequalities - _numAuxiliaryInequalities > 0)
+				CheckSolutionIntegrity(
+						_data->GetInequalityCoefs(),
+						_y, -1,
+						_data->GetInequalityValues());
 
 		if (_gammaConst) { // use inequalities from data directly
 
@@ -727,7 +729,7 @@ SoftMarginLoss::SetLinearConstraints() {
 }
 
 void
-SoftMarginLoss::CheckSolutionIntegrety(
+SoftMarginLoss::CheckSolutionIntegrity(
 		const TheMatrix& A,
 		const TheMatrix& y,
 		int relation,
@@ -748,7 +750,7 @@ SoftMarginLoss::CheckSolutionIntegrety(
 
 			case -1:
 				if (x_i > b_i) {
-					cout << "[SoftMarginLoss::CheckSolutionIntegrety] "
+					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\"<=\" constraint!" << endl;
 					return;
@@ -757,7 +759,7 @@ SoftMarginLoss::CheckSolutionIntegrety(
 
 			case 0:
 				if (x_i != b_i) {
-					cout << "[SoftMarginLoss::CheckSolutionIntegrety] "
+					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\"==\" constraint!" << endl;
 					return;
@@ -766,7 +768,7 @@ SoftMarginLoss::CheckSolutionIntegrety(
 
 			case 1:
 				if (x_i < b_i) {
-					cout << "[SoftMarginLoss::CheckSolutionIntegrety] "
+					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\">=\" constraint!" << endl;
 					return;
@@ -774,7 +776,8 @@ SoftMarginLoss::CheckSolutionIntegrety(
 				break;
 		}
 	}
-	cout << "[SoftMarginLoss::CheckSolutionIntegrety] "
+
+	cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 	     << "ground-truth satisfies "
 	     << (relation == 0 ? "" : "in") << "equality constraints"
 	     << endl;

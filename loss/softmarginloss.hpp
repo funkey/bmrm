@@ -94,7 +94,7 @@ private:
 	/** Checks whether the ground-truth fulfills the requirements imposed by the
 	 * linear constraints.
 	 */
-	void CheckSolutionIntegrety(
+	void CheckSolutionIntegrity(
 			const TheMatrix& A,
 			const TheMatrix& y,
 			int relation,

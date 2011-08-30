@@ -20,6 +20,7 @@
 
 #include <CplexSolver.hpp>
 
+#include "timer.hpp"
 #include "configuration.hpp"
 
 CplexSolver::CplexSolver(
@@ -105,37 +106,80 @@ CplexSolver::SetEqualities(const TheMatrix& A, const TheMatrix& b) {
 
 	IloRangeArray constraints(_env);
 
+	if (_verbosity > 1)
+		cout << "[CplexSolver::SetEqualities] setting "
+		     << _numIneqConstraints
+		     << " equality constraints" << endl;
+
+	CTimer initTimer;
+	initTimer.Start();
+
+	unsigned int  numEntries = 0;
+	double*       coefs      = new double[_numVariables];
+	unsigned int* indices    = new unsigned int[_numVariables];
+
+	initTimer.Stop();
+
+	if (_verbosity > 1)
+		cout << "[CplexSolver::SetEqualities] "
+		     << "time initialising           : "
+		     << initTimer.WallclockTotal() << endl;
+
 	for (unsigned int j = 0; j < _numEqConstraints; j++) {
+
+		if (_verbosity > 1)
+			if (j % 100 == 0)
+				cout << "[CplexSolver::SetEqualities] "
+				     << j << " constraints set so far"
+				     << endl;
+
+		CTimer extractTimer;
+		extractTimer.Start();
+
+		// get the whole row
+		A.GetRow(j, numEntries, coefs, indices);
 
 		// get the rhs value
 		double value;
 		b.Get(j, value);
 
+		extractTimer.Stop();
+
+		CTimer setTimer;
+		setTimer.Start();
+
 		// set the bounds
 		IloRange constraint(_env, value, value);
 
 		// set the coefficients
-		for (unsigned int i = 0; i < _numVariables; i++) {
-
-			double coefficient;
-			A.Get(j, i, coefficient);
-
-			if (coefficient == 0.0)
-				continue;
+		for (unsigned int i = 0; i < numEntries; i++) {
 
 			constraint.setLinearCoef(
-					_variables[i],
-					static_cast<IloNum>(coefficient));
+					_variables[indices[i]],
+					static_cast<IloNum>(coefs[i]));
 		}
 
 		// add to the constraint array
 		constraints.add(constraint);
+
+		setTimer.Stop();
+
+		if (_verbosity > 1) {
+
+			cout << "[CplexSolver::SetEqualities] "
+			     << "time extracting coefficients: "
+			     << extractTimer.WallclockTotal() << endl;
+			cout << "[CplexSolver::SetEqualities] "
+			     << "time setting coefficients   : "
+			     << setTimer.WallclockTotal() << endl;
+		}
 	}
 
 	_model.add(constraints);
 
 	if (_verbosity > 2)
-		cout << "[CplexSolver] model after setting equality constraints: "
+		cout << "[CplexSolver::SetEqualities] "
+		     << "model after setting equality constraints: "
 			 << endl << _model << endl;
 }
 
@@ -144,37 +188,83 @@ CplexSolver::SetInequalities(const TheMatrix& C, const TheMatrix& d) {
 
 	IloRangeArray constraints(_env);
 
+	if (_verbosity > 1)
+		cout << "[CplexSolver::SetInequalities] setting "
+		     << _numIneqConstraints
+		     << " inequality constraints" << endl;
+
+	CTimer initTimer;
+	initTimer.Start();
+
+	unsigned int  numEntries = 0;
+	double*       coefs      = new double[_numVariables];
+	unsigned int* indices    = new unsigned int[_numVariables];
+
+	initTimer.Stop();
+
+	if (_verbosity > 1)
+		cout << "[CplexSolver::SetInequalities] "
+		     << "time initialising           : "
+		     << initTimer.WallclockTotal() << endl;
+
 	for (unsigned int j = 0; j < _numIneqConstraints; j++) {
+
+		if (_verbosity > 1)
+			if (j % 100 == 0)
+				cout << "[CplexSolver::SetInequalities] "
+				     << j << " constraints set so far"
+				     << endl;
+
+		CTimer extractTimer;
+		extractTimer.Start();
+
+		// get the whole row
+		C.GetRow(j, numEntries, coefs, indices);
 
 		// get the rhs value
 		double value;
 		d.Get(j, value);
 
+		extractTimer.Stop();
+
+		CTimer setTimer;
+		setTimer.Start();
+
 		// set the bounds
 		IloRange constraint(_env, -IloInfinity, value);
 
 		// set the coefficients
-		for (unsigned int i = 0; i < _numVariables; i++) {
-
-			double coefficient;
-			C.Get(j, i, coefficient);
-
-			if (coefficient == 0.0)
-				continue;
+		for (unsigned int i = 0; i < numEntries; i++) {
 
 			constraint.setLinearCoef(
-					_variables[i],
-					static_cast<IloNum>(coefficient));
+					_variables[indices[i]],
+					static_cast<IloNum>(coefs[i]));
 		}
 
 		// add to the constraint array
 		constraints.add(constraint);
+
+		setTimer.Stop();
+
+		if (_verbosity > 1) {
+
+			cout << "[CplexSolver::SetInequalities] "
+			     << "time extracting coefficients: "
+			     << extractTimer.WallclockTotal() << endl;
+			cout << "[CplexSolver::SetInequalities] "
+			     << "time setting coefficients   : "
+			     << setTimer.WallclockTotal() << endl;
+		}
 	}
+
+	delete[] coefs;
+	delete[] indices;
 
 	_model.add(constraints);
 
 	if (_verbosity > 2)
-		cout << "[CplexSolver] model after setting inequality constraints: "
+		cout << "[CplexSolver::SetInequalities] "
+		     << "model after setting inequality constraints: "
 			 << endl << _model << endl;
 }
 
@@ -202,4 +292,3 @@ CplexSolver::Solve(TheMatrix& x, double& value, string& msg) {
 
 	return true;
 }
-

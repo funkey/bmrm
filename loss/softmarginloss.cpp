@@ -193,11 +193,11 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
 		int varnum = 0;
 
-		// f_a is vectorized upper triangle of Q ≈ Γ_l*M_l^T, where Q is lower
-		// triabgle zero matrix such that x^T*Q*x = x^T*(Γ_l*M_l^T)*x for every
+		// f_a is vectorized upper triangle of Q ≈ Γ_l*M_l^T, where Q is a lower
+		// triangle zero matrix such that x^T*Q*x = x^T*(Γ_l*M_l^T)*x for every
 		// x.
 		//
-		// f_a = vec(_g_l*_m_l^T)
+		// f_a = vectorized_upper_triangle(_g_l*_m_l^T)
 		//
 		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 
@@ -300,6 +300,43 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 
 		TheMatrix y_all(_numVariables, 1, SML::SPARSE);
 		success = _solver->Solve(y_all, loss, msg);
+
+		// DEBUG -- check consistency of auxiliary variables
+		int auxVarNum = _numVariables - _numAuxiliaryVariables;
+		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+			for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {
+
+				double y_i;
+				double y_j;
+				double a_ij;
+				double a_i_j;
+				double a__ij;
+
+				y_all.Get(i, y_i);
+				y_all.Get(j, y_j);
+				y_all.Get(auxVarNum,     a_ij);
+				y_all.Get(auxVarNum + 1, a_i_j);
+				y_all.Get(auxVarNum + 2, a__ij);
+
+				if (y_i == 1 && y_j == 1 && a_ij != 1)
+					cout << "[SoftMarginLoss::ComputeLossAndGradient] ************* "
+					     << "a_ij not correct for variables " << i << " and " << j << endl;
+				if (y_i == 1 && y_j == 0 && a_i_j != 1)
+					cout << "[SoftMarginLoss::ComputeLossAndGradient] ************* "
+					     << "a_i!j not correct for variables " << i << " and " << j << endl;
+				if (y_i == 0 && y_j == 1 && a__ij != 1)
+					cout << "[SoftMarginLoss::ComputeLossAndGradient] ************* "
+					     << "a_!ij not correct for variables " << i << " and " << j << endl;
+				if (y_i == 0 && y_j == 0 && a_ij != 0 && a_i_j != 0 && a__ij != 0)
+					cout << "[SoftMarginLoss::ComputeLossAndGradient] ************* "
+					     << "a_ij's not correct for variables " << i << " and " << j << endl;
+				if (a_ij + a_i_j + a__ij > 1)
+					cout << "[SoftMarginLoss::ComputeLossAndGradient] ************* "
+					     << "too many a_ij's switched on for variables " << i << " and " << j << endl;
+
+				auxVarNum += 3;
+			}
+		}
 
 		// read back the problem variable part only
 		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {

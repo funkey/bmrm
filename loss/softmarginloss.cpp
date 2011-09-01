@@ -661,6 +661,9 @@ SoftMarginLoss::SetLinearConstraints() {
 				     << "filling coefficients and values..."
 				     << endl;
 
+			eqCoefs.Zero();
+			eqValues.Zero();
+
 			// equalities from the data
 			for (int j = 0; j < _numEqualities - _numAuxiliaryEqualities; j++) {
 				for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
@@ -803,6 +806,9 @@ SoftMarginLoss::SetLinearConstraints() {
 				cout << "[SoftMarginLoss::SetLinearConstraints] "
 				     << "filling coefficients and values..."
 				     << endl;
+
+			ineqCoefs.Zero();
+			ineqValues.Zero();
 
 			// inequalities from the data
 			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {

@@ -306,6 +306,9 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		TheMatrix y_all(_numVariables, 1, SML::SPARSE);
 		success = _solver->Solve(y_all, loss, msg);
 
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "solver returned: " << msg << endl;
+
 		int auxVarNum = _numVariables - _numAuxiliaryVariables;
 		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 			for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {

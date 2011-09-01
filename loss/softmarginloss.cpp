@@ -728,6 +728,43 @@ SoftMarginLoss::SetLinearConstraints() {
 				eqValues.Print();
 			}
 
+			// DEBUG
+			// check consistency of ground-truth
+			TheMatrix y_aug(_numVariables, 1, SML::SPARSE);
+			y_aug.Zero();
+			// fill in ground-truth
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+				double v;
+				_y.Get(i, v);
+				y_aug.Set(i, v);
+			}
+			// set auxiliary variables
+			auxVarNum = _numVariables - _numAuxiliaryVariables;
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+				for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {
+
+					double y_i;
+					double y_j;
+
+					_y.Get(i, y_i);
+					_y.Get(j, y_j);
+
+					if (y_i == 1 && y_j == 1)
+						y_aug.Set(auxVarNum, 1);
+					else if (y_i == 1 && y_j == 0)
+						y_aug.Set(auxVarNum + 1, 1);
+					else if (y_i == 0 && y_j == 1)
+						y_aug.Set(auxVarNum + 2, 1);
+					else if (y_i != 0 || y_j != 0)
+						cout << "[SoftMarginLoss::ComputeLossAndGradient] ********* "
+							 << "there is something wrong here" << endl;
+
+					auxVarNum += 3;
+				}
+			}
+			CheckSolutionIntegrity(eqCoefs, y_aug, 0, eqValues);
+			// DEBUG END
+
 			// set them
 			_solver->SetEqualities(eqCoefs, eqValues);
 		}
@@ -820,6 +857,43 @@ SoftMarginLoss::SetLinearConstraints() {
 				cout << endl;
 				ineqValues.Print();
 			}
+
+			// DEBUG
+			// check consistency of ground-truth
+			TheMatrix y_aug(_numVariables, 1, SML::SPARSE);
+			y_aug.Zero();
+			// fill in ground-truth
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+				double v;
+				_y.Get(i, v);
+				y_aug.Set(i, v);
+			}
+			// set auxiliary variables
+			auxVarNum = _numVariables - _numAuxiliaryVariables;
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+				for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {
+
+					double y_i;
+					double y_j;
+
+					_y.Get(i, y_i);
+					_y.Get(j, y_j);
+
+					if (y_i == 1 && y_j == 1)
+						y_aug.Set(auxVarNum, 1);
+					else if (y_i == 1 && y_j == 0)
+						y_aug.Set(auxVarNum + 1, 1);
+					else if (y_i == 0 && y_j == 1)
+						y_aug.Set(auxVarNum + 2, 1);
+					else if (y_i != 0 || y_j != 0)
+						cout << "[SoftMarginLoss::ComputeLossAndGradient] ********* "
+							 << "there is something wrong here" << endl;
+
+					auxVarNum += 3;
+				}
+			}
+			CheckSolutionIntegrity(ineqCoefs, y_aug, -1, ineqValues);
+			// DEBUG END
 
 			// set them
 			_solver->SetInequalities(ineqCoefs, ineqValues);

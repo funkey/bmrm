@@ -329,6 +329,8 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 				else if (y_i != 0 || y_j != 0)
 					cout << "[SoftMarginLoss::ComputeLossAndGradient] ********* "
 					     << "there is something wrong here" << endl;
+
+				auxVarNum += 3;
 			}
 		}
 

@@ -932,7 +932,6 @@ SoftMarginLoss::CheckSolutionIntegrity(
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\"<=\" constraint!" << endl;
-					return;
 				}
 				break;
 
@@ -941,7 +940,6 @@ SoftMarginLoss::CheckSolutionIntegrity(
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\"==\" constraint!" << endl;
-					return;
 				}
 				break;
 
@@ -950,7 +948,6 @@ SoftMarginLoss::CheckSolutionIntegrity(
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\">=\" constraint!" << endl;
-					return;
 				}
 				break;
 		}

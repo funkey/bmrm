@@ -223,6 +223,8 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 			}
 
 			// diagonal of Q is linear for binary y, therefore we add it to f_y
+			//
+			// f_y = ... + q_l
 			double current;
 			f_y.Get(i, current);
 			f_y.Set(i, current + g_l_i*m_l_i);
@@ -305,12 +307,14 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		success = _solver->Solve(y_all, loss, msg);
 
 		// HACK -- set y_all to ground-truth
-		y_all.Zero();
-		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+		if (loss < 0) {
+			y_all.Zero();
+			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 
-			double v;
-			_y.Get(i, v);
-			y_all.Set(i, v);
+				double v;
+				_y.Get(i, v);
+				y_all.Set(i, v);
+			}
 		}
 
 		int auxVarNum = _numVariables - _numAuxiliaryVariables;

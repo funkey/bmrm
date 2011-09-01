@@ -632,7 +632,7 @@ SoftMarginLoss::SetLinearConstraints() {
 				     << endl;
 
 			// create equality coefficent matrix and value vector
-			TheMatrix eqCoefs(_numEqualities, _numVariables, SML::DENSE);
+			TheMatrix eqCoefs(_numEqualities, _numVariables, SML::SPARSE);
 			TheMatrix eqValues(_numEqualities, 1, SML::DENSE);
 
 			if (_verbosity > 1)
@@ -738,7 +738,7 @@ SoftMarginLoss::SetLinearConstraints() {
 				     << endl;
 
 			// create equality coefficent matrix and value vector
-			TheMatrix ineqCoefs(_numInequalities, _numVariables, SML::DENSE);
+			TheMatrix ineqCoefs(_numInequalities, _numVariables, SML::SPARSE);
 			TheMatrix ineqValues(_numInequalities, 1, SML::DENSE);
 
 			if (_verbosity > 1)

@@ -301,8 +301,35 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		TheMatrix y_all(_numVariables, 1, SML::SPARSE);
 		success = _solver->Solve(y_all, loss, msg);
 
-		// DEBUG -- check consistency of auxiliary variables
+		// HACK -- set y_all to ground-truth
+		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+
+			double v;
+			_y.Get(i, v);
+			y_all.Set(i, v);
+		}
+
 		int auxVarNum = _numVariables - _numAuxiliaryVariables;
+		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
+			for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {
+
+				double y_i;
+				double y_j;
+
+				if (y_i == 1 && y_j == 1)
+					y_all.Set(auxVarNum, 1);
+				else if (y_i == 1 && y_j == 0)
+					y_all.Set(auxVarNum + 1, 1);
+				else if (y_i == 0 && y_j == 1)
+					y_all.Set(auxVarNum + 2, 1);
+				else if (y_i != 0 || y_j != 0)
+					cout << "[SoftMarginLoss::ComputeLossAndGradient] ********* "
+					     << "there is something wrong here" << endl;
+			}
+		}
+
+		// DEBUG -- check consistency of auxiliary variables
+		auxVarNum = _numVariables - _numAuxiliaryVariables;
 		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 			for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {
 

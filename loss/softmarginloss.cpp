@@ -302,6 +302,7 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		success = _solver->Solve(y_all, loss, msg);
 
 		// HACK -- set y_all to ground-truth
+		y_all.Zero();
 		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 
 			double v;

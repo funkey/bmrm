@@ -398,11 +398,24 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		_c_l.Dot(y_, costTerm);
 		costTerm += _c_c;
 
+		double gammaTerm;
+		_g_l.Dot(y_, gammaTerm);
+		gammaTerm += _g_c;
+
+		double marginTerm;
+		_m_l.Dot(y_, marginTerm);
+		marginTerm += _m_c;
+
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "Δ(y,y')            :" << costTerm << endl;
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "Γ(y,y')            :" << gammaTerm << endl;
+		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
+		     << "<w,Θ(x,y')-Θ(x,y)> :" << marginTerm << endl;
+
 		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
 		     << "loss Γ(y,y')<w,Θ(x,y')-Θ(x,y)> + Δ(y,y'): "
-		     << (loss - costTerm)
-		     << " + " << costTerm
-		     << " = " << loss << endl;
+		     << loss << endl;
 	}
 
 	if (!success) {
@@ -427,8 +440,7 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 	computeGradientTime.Start();
 
 	// phiCu = phi(x,y') = X^T*y'
-	_data->XTMultW(y_, grad); // use grad in-place
-
+	_data->XTMultW(y_, grad); // use grad in-place 
 	if (_verbosity > 2) {
 		cout << "[SoftMarginLoss::ComputeLossAndGradient] "
 			 << "phiCu: ";

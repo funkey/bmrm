@@ -306,17 +306,6 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 		TheMatrix y_all(_numVariables, 1, SML::SPARSE);
 		success = _solver->Solve(y_all, loss, msg);
 
-		// HACK -- set y_all to ground-truth
-		if (loss < 0) {
-			y_all.Zero();
-			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
-
-				double v;
-				_y.Get(i, v);
-				y_all.Set(i, v);
-			}
-		}
-
 		int auxVarNum = _numVariables - _numAuxiliaryVariables;
 		for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 			for (int j = i+1; j < _numVariables - _numAuxiliaryVariables; j++) {

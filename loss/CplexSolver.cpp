@@ -236,6 +236,7 @@ void CplexSolver::SetConstraints(const TheMatrix& A, const TheMatrix& b, int rel
 bool
 CplexSolver::Solve(TheMatrix& x, double& value, string& msg) {
 
+	_cplex.setParam(IloCplex::AdvInd, 0);
 	_cplex.solve();
 
 	// get solver result message

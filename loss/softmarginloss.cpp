@@ -216,6 +216,9 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 				_m_l.Get(j, m_l_j);
 
 				f_a.Set(varnum, g_l_i*m_l_j + g_l_j*m_l_i);
+				f_a.Set(varnum + 1, 0);
+				f_a.Set(varnum + 2, 0);
+
 				varnum += 3;
 			}
 

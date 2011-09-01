@@ -316,6 +316,9 @@ SoftMarginLoss::ComputeLossAndGradient(double& loss, TheMatrix& grad) {
 				double y_i;
 				double y_j;
 
+				y_all.Get(i, y_i);
+				y_all.Get(j, y_j);
+
 				if (y_i == 1 && y_j == 1)
 					y_all.Set(auxVarNum, 1);
 				else if (y_i == 1 && y_j == 0)

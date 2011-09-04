@@ -811,14 +811,18 @@ SoftMarginLoss::SetLinearConstraints() {
 			ineqValues.Zero();
 
 			// inequalities from the data
-			for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
-				for (int j = 0; j < _numInequalities - _numAuxiliaryInequalities; j++) {
+			for (int j = 0; j < _numInequalities - _numAuxiliaryInequalities; j++) {
+				for (int i = 0; i < _numVariables - _numAuxiliaryVariables; i++) {
 
 					double coef;
 					_data->GetInequalityCoefs().Get(j, i, coef);
 
 					ineqCoefs.Set(j, i, coef);
 				}
+
+				double value;
+				_data->GetInequalityValues().Get(j, value);
+				ineqValues.Set(j, value);
 			}
 
 			if (_verbosity > 1)

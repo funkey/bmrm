@@ -873,6 +873,12 @@ SoftMarginLoss::SetLinearConstraints() {
 				double v;
 				_y.Get(i, v);
 				y_aug.Set(i, v);
+
+				if (i <= 20) {
+					double v2;
+					y_aug.Get(i, v2);
+					cout << i << ": " << v << " -> " << v2 << endl;
+				}
 			}
 			// set auxiliary variables
 			auxVarNum = _numVariables - _numAuxiliaryVariables;

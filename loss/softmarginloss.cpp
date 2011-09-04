@@ -844,6 +844,38 @@ SoftMarginLoss::SetLinearConstraints() {
 				}
 			}
 
+			// show original inequality constraints
+			for (int i = 0; i < 20; i++) {
+
+				cout << i << ":    ";
+				for (int j = 0; j < _numVariables - _numAuxiliaryVariables; j++) {
+
+					double coef;
+					_data->GetInequalityCoefs().Get(i, j, coef);
+					if (coef != 0)
+						cout << j << ":" << coef << " ";
+				}
+				double val;
+				_data->GetInequalityValues().Get(i, val);
+				cout << " = " << val << endl;
+			}
+
+			// show augmented inequality constraints
+			for (int i = 0; i < 20; i++) {
+
+				cout << i << ":    ";
+				for (int j = 0; j < _numVariables; j++) {
+
+					double coef;
+					ineqCoefs.Get(i, j, coef);
+					if (coef != 0)
+						cout << j << ":" << coef << " ";
+				}
+				double val;
+				ineqValues.Get(i, val);
+				cout << " = " << val << endl;
+			}
+
 			if (_verbosity > 1)
 				cout << "[SoftMarginLoss::SetLinearConstraints] "
 				     << "...done with auxiliary part."

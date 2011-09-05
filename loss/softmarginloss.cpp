@@ -768,7 +768,7 @@ SoftMarginLoss::CheckSolutionIntegrity(
 				if (x_i != b_i) {
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
-					     << "\"==\" constraint!" << x_i << " != "
+					     << "\"==\" constraint! (" << x_i << " != "
 					     << b_i << ")" << endl;
 					failed = true;
 				}
@@ -778,7 +778,7 @@ SoftMarginLoss::CheckSolutionIntegrity(
 				if (x_i < b_i) {
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
-					     << "\">=\" constraint!" << x_i << " < "
+					     << "\">=\" constraint! (" << x_i << " < "
 					     << b_i << ")" << endl;
 					failed = true;
 				}

@@ -461,7 +461,7 @@ SoftMarginLoss::ComputeGammaContribution(const TheMatrix& groundTruth) {
 
 		} else
 			throw CBMRMException(
-					"unkown Loss.gammaConstant value",
+					"unkown Loss.gammaFunctionType value",
 					"SoftMarginLoss::ComputeGammaContribution");
 	}
 

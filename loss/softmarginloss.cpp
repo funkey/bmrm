@@ -742,6 +742,8 @@ SoftMarginLoss::CheckSolutionIntegrity(
 	TheMatrix x(b.Rows(), 1);
 	A.Dot(y, x);
 
+	bool failed = false;
+
 	for (int i = 0; i < A.Rows(); i++) {
 
 		double x_i;
@@ -757,7 +759,7 @@ SoftMarginLoss::CheckSolutionIntegrity(
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\"<=\" constraint!" << endl;
-					return;
+					failed = true;
 				}
 				break;
 
@@ -766,7 +768,7 @@ SoftMarginLoss::CheckSolutionIntegrity(
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\"==\" constraint!" << endl;
-					return;
+					failed = true;
 				}
 				break;
 
@@ -775,14 +777,15 @@ SoftMarginLoss::CheckSolutionIntegrity(
 					cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
 					     << "ground-truth violates " << i << "th "
 					     << "\">=\" constraint!" << endl;
-					return;
+					failed = true;
 				}
 				break;
 		}
 	}
 
-	cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
-	     << "ground-truth satisfies "
-	     << (relation == 0 ? "" : "in") << "equality constraints"
-	     << endl;
+	if (!failed)
+		cout << "[SoftMarginLoss::CheckSolutionIntegrity] "
+			 << "ground-truth satisfies "
+			 << (relation == 0 ? "" : "in") << "equality constraints"
+			 << endl;
 }

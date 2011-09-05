@@ -111,6 +111,9 @@ private:
 
 	// the verbosity of the output - set via Cplex.verbosity in config file
 	int _verbosity;
+
+	// a value by which to scale the objective
+	double _scale;
 };
 
 #endif // _CPLEX_SOLVER_HPP_

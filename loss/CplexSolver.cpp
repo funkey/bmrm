@@ -72,9 +72,21 @@ CplexSolver::~CplexSolver() {
 }
 
 void
-CplexSolver::SetObjective(const TheMatrix& a, double constant, Sense sense) {
+CplexSolver::SetObjective(const TheMatrix& a, double c, Sense sense) {
 
 	// TODO: check size of a
+
+	// normalize the values of a and c to an intervall between -1 and 1
+	double max = c;
+	for (unsigned int i = 0; i < _numVariables; i++) {
+
+		double value;
+		a.Get(i, value);
+
+		if (abs(value) > max)
+			max = abs(value);
+	}
+	_scale = 1.0/max;
 
 	// set sense of objective
 	if (sense == MINIMIZE)
@@ -83,7 +95,7 @@ CplexSolver::SetObjective(const TheMatrix& a, double constant, Sense sense) {
 		_objective.setSense(IloObjective::Maximize);
 
 	// set the constant value of the objective
-	_objective.setConstant(static_cast<IloNum>(constant));
+	_objective.setConstant(static_cast<IloNum>(_scale*c));
 
 	// set the coefficients for all variables
 	for (unsigned int i = 0; i < _numVariables; i++) {
@@ -91,7 +103,7 @@ CplexSolver::SetObjective(const TheMatrix& a, double constant, Sense sense) {
 		double value;
 		a.Get(i, value);
 
-		_coefs[i] = static_cast<IloNum>(value);
+		_coefs[i] = static_cast<IloNum>(_scale*value);
 	}
 
 	_objective.setLinearCoefs(_variables, _coefs);
@@ -253,7 +265,7 @@ CplexSolver::Solve(TheMatrix& x, double& value, string& msg) {
 		x.Set(i, static_cast<double>(values[i]));
 
 	// get current value of the objective
-	value = static_cast<double>(_cplex.getObjValue());
+	value = static_cast<double>(_cplex.getObjValue())/_scale;
 
 	return true;
 }
